@@ -3,8 +3,11 @@ FROM eclipse-temurin:17-jdk AS builder
 
 WORKDIR /app
 
-# プロジェクトのファイルをコピー
+# プロジェクト全体をコピー
 COPY . .
+
+# Maven Wrapperに実行権限を付与
+RUN chmod +x ./mvnw
 
 # Mavenでビルド（target/*.jar を生成）
 RUN ./mvnw clean package -DskipTests

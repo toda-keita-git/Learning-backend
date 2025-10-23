@@ -38,7 +38,7 @@ public class GitHubAuthController {
      * @param code GitHubから発行された認証コード
      * @return アクセストークンを含むJSON
      */
-    @CrossOrigin(origins = "http://localhost:5173")
+    @CrossOrigin(origins = "https://learning-backend-1-wlzo.onrender.com")
     @GetMapping
     public Map<String, String> githubCallback(@RequestParam("code") String code) {
         String accessToken = gitHubAuthService.getAccessToken(code);

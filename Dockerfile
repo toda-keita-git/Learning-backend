@@ -4,6 +4,8 @@ COPY . .
 RUN chmod +x ./mvnw
 RUN ./mvnw clean package -DskipTests
 
+RUN ls -la target/
+
 FROM eclipse-temurin:17-jdk
 WORKDIR /app
 ENV PORT=8080

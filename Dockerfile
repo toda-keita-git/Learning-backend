@@ -1,12 +1,25 @@
-# ベースイメージ（Java 17）
+# ===== 1. ビルド用ステージ =====
+FROM eclipse-temurin:17-jdk AS builder
+
+WORKDIR /app
+
+# プロジェクトのファイルをコピー
+COPY . .
+
+# Mavenでビルド（target/*.jar を生成）
+RUN ./mvnw clean package -DskipTests
+
+# ===== 2. 実行用ステージ =====
 FROM eclipse-temurin:17-jdk
 
-# アプリJARをコピー
-COPY target/*.jar app.jar
+WORKDIR /app
 
-# Renderが指定するPORT環境変数を利用
-ENV PORT 8080
+# RenderがPORTを環境変数として渡す
+ENV PORT=8080
 EXPOSE 8080
 
-# 実行コマンド
+# ビルド成果物（jar）をコピー
+COPY --from=builder /app/target/*.jar app.jar
+
+# 起動コマンド
 ENTRYPOINT ["java", "-jar", "/app.jar"]

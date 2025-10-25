@@ -38,6 +38,11 @@ public class GitHubAuthService {
     public Map<String, Object> getAccessTokenAndRegisterUser(String code) {
         try {
             User newUser = new User();
+            newUser.setGithubLogin(githubLogin);
+            newUser.setEmail(email);
+            newUser.setAvatarUrl(avatarUrl);
+            newUser.setAccessToken(accessToken);
+            newUser.setCreatedRepo(false);
 
             // ====== ① access_token を取得 ======
             String accessToken = getAccessToken(code);
@@ -64,12 +69,6 @@ public class GitHubAuthService {
 
             if (existingUser == null) {
                 // --- 新規登録 ---
-                User newUser = new User();
-                newUser.setGithubLogin(githubLogin);
-                newUser.setEmail(email);
-                newUser.setAvatarUrl(avatarUrl);
-                newUser.setAccessToken(accessToken);
-                newUser.setCreatedRepo(false);
                 userMapper.insert(newUser);
 
                 // --- 個別リポジトリ作成 ---

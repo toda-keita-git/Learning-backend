@@ -18,7 +18,7 @@ public class LearningService {
     
     // ユーザーID指定で全学習情報取得
     public List<Learning> findALL(int user_id) {
-        return learningMapper.findAllByUserId(user_id);
+        return learningMapper.findAll(user_id);
     }
     
     public List<categories> category_list() {
@@ -40,7 +40,7 @@ public class LearningService {
 
     // 最新学習IDを取得（user_id指定）
     public Integer learning_one_select(int user_id) {
-        return learningMapper.learning_one_selectByUserId(user_id);
+        return learningMapper.learning_one_select(user_id);
     }
     
     public void learning_tag_insert(Integer learning_id,Integer tag_id) {

@@ -12,6 +12,8 @@ public class User {
     private String accessToken;       // OAuthアクセストークン
     private LocalDateTime createdAt;  // 作成日時
     private Boolean deleteFlg;        // 論理削除フラグ（true:削除）
+    private String githubLogin;
+    private boolean createdRepo;
 
     // --- Getter / Setter ---
     public Integer getId() {
@@ -76,6 +78,21 @@ public class User {
 
     public void setDeleteFlg(Boolean deleteFlg) {
         this.deleteFlg = deleteFlg;
+    }
+
+    public String getGithubLogin() {
+        return githubLogin;
+    }
+    public void setGithubLogin(String githubLogin) {
+        this.githubLogin = githubLogin;
+    }
+
+    // createdRepo の getter/setter
+    public boolean getCreatedRepo() {
+        return createdRepo;
+    }
+    public void setCreatedRepo(boolean createdRepo) {
+        this.createdRepo = createdRepo;
     }
 
     // --- toString() ---

@@ -7,6 +7,7 @@ import java.util.Map;
 
 @CrossOrigin
 @RestController
+@CrossOrigin(origins = "https://learning-frontend-x5jf.onrender.com")
 @RequestMapping("/github")
 public class GitHubAuthController {
 

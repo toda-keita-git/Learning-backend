@@ -6,8 +6,8 @@ import com.udemy.hello.mapper.GitHubAuthService;
 import java.util.Map;
 
 @RestController
-@CrossOrigin(origins = "https://learning-frontend-x5jf.onrender.com//LearningContent")
-@GetMapping("/github")
+@CrossOrigin(origins = "https://learning-frontend-x5jf.onrender.com")
+@RequestMapping("/github")
 public class GitHubAuthController {
 
     @Autowired

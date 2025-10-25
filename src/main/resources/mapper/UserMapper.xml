@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.udemy.hello.mapper.UserMapper">
+
+    <!-- ==========================
+         ResultMap（Userオブジェクトとのマッピング定義）
+         ========================== -->
+    <resultMap id="UserResultMap" type="com.udemy.hello.model.User">
+        <id property="id" column="id" />
+        <result property="githubLogin" column="github_login" />
+        <result property="email" column="email" />
+        <result property="avatarUrl" column="avatar_url" />
+        <result property="accessToken" column="access_token" />
+        <result property="createdRepo" column="created_repo" />
+        <result property="createdAt" column="created_at" />
+        <result property="deleteFlg" column="delete_flg" />
+    </resultMap>
+
+    <!-- ==========================
+         GitHubログイン名からユーザー検索
+         ========================== -->
+    <select id="findByGithubLogin" parameterType="string" resultMap="UserResultMap">
+        SELECT *
+        FROM users
+        WHERE github_login = #{githubLogin}
+          AND (delete_flg = FALSE OR delete_flg IS NULL)
+        LIMIT 1;
+    </select>
+
+    <!-- ==========================
+         新規ユーザー登録
+         ========================== -->
+    <insert id="insert" parameterType="com.udemy.hello.model.User" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO users (
+            github_login,
+            email,
+            avatar_url,
+            access_token,
+            created_repo,
+            created_at,
+            delete_flg
+        )
+        VALUES (
+            #{githubLogin},
+            #{email},
+            #{avatarUrl},
+            #{accessToken},
+            #{createdRepo},
+            NOW(),
+            FALSE
+        );
+    </insert>
+
+    <!-- ==========================
+         ユーザー情報更新
+         ========================== -->
+    <update id="update" parameterType="com.udemy.hello.model.User">
+        UPDATE users
+        SET
+            email = #{email},
+            avatar_url = #{avatarUrl},
+            access_token = #{accessToken},
+            created_repo = #{createdRepo},
+            delete_flg = #{deleteFlg}
+        WHERE github_login = #{githubLogin};
+    </update>
+
+</mapper>

@@ -22,4 +22,5 @@ public class Learning {
 	private String[] tags;
 	private String github_path;
 	private String commit_sha;
+	private Integer user_id;
 }

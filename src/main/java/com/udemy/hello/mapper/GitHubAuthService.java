@@ -101,6 +101,7 @@ public class GitHubAuthService {
             result.put("github_login", githubLogin);
             result.put("email", email);
             result.put("avatar_url", avatarUrl);
+            result.put("user_id", existingUser != null ? existingUser.getId() : newUser.getId());
 
             return result;
 

@@ -3,6 +3,7 @@
     "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.udemy.hello.mapper.LearningMapper">
     
+    <!-- LearningのResultMapにuser_idを追加 -->
     <resultMap id="Learning" type="Learning">
         <id property="id" column="id" />
         <result property="title" column="title" />
@@ -14,6 +15,7 @@
         <result property="github_path" column="github_path" />
         <result property="commit_sha" column="commit_sha" />
         <result property="delete_flg" column="delete_flg" />
+        <result property="user_id" column="user_id" />
     </resultMap>
     
     <resultMap id="Learning_i" type="Integer">
@@ -24,6 +26,7 @@
         <result property="reference_url" column="reference_url" />
         <result property="created_at" column="created_at" />
         <result property="category_id" column="category_id" />
+        <result property="user_id" column="user_id" />
     </resultMap>
     
     <resultMap id="categories" type="categories">
@@ -47,11 +50,13 @@
         <result property="tag_id" column="tag_id" />
     </resultMap>
 
+    <!-- ユーザー別の学習一覧取得 -->
     <select id="findAll" resultMap="Learning">
         SELECT * 
         FROM learnings
         INNER JOIN categories ON categories.id = learnings.category_id
         WHERE learnings.delete_flg = 0
+          AND learnings.user_id = #{user_id}
         ORDER BY learnings.id ASC
     </select>
     
@@ -73,25 +78,27 @@
         ORDER BY id ASC
     </select>
     
+    <!-- 学習データ挿入にuser_idを追加 -->
     <insert id="learning_insert">
     	INSERT INTO learnings
-        (title,explanatory_text,understanding_level,reference_url,created_at,category_id,github_path,commit_sha)
+        (title, explanatory_text, understanding_level, reference_url, created_at, category_id, github_path, commit_sha, user_id)
         VALUES 
-        (#{title},#{explanatory_text},#{understanding_level},#{reference_url},#{created_at},#{category_id},#{github_path},#{commit_sha});
+        (#{title}, #{explanatory_text}, #{understanding_level}, #{reference_url}, #{created_at}, #{category_id}, #{github_path}, #{commit_sha}, #{user_id});
     </insert>
     
     <select id="learning_one_select" resultMap="Learning_i">
         SELECT id
         FROM learnings
+        WHERE user_id = #{user_id}
         ORDER BY id DESC
         LIMIT 1;
     </select>
     
     <insert id="learning_tag_insert">
         INSERT INTO learning_tags
-        (learning_id,tag_id)
+        (learning_id, tag_id)
         VALUES 
-        (#{learning_id},#{tag_id});
+        (#{learning_id}, #{tag_id});
     </insert>
     
     <insert id="tags_insert">
@@ -117,20 +124,21 @@
     <update id="learning_update">
     	UPDATE learnings
         SET title = #{title},
-         explanatory_text = #{explanatory_text},
-         understanding_level = #{understanding_level},
-         reference_url = #{reference_url},
-         created_at = #{created_at},
-         category_id = #{category_id},
-         github_path = #{github_path},
-         commit_sha = #{commit_sha}
+            explanatory_text = #{explanatory_text},
+            understanding_level = #{understanding_level},
+            reference_url = #{reference_url},
+            created_at = #{created_at},
+            category_id = #{category_id},
+            github_path = #{github_path},
+            commit_sha = #{commit_sha},
+            user_id = #{user_id}
         WHERE id = #{id};
     </update>
     
     <update id="learning_delete">
 	    UPDATE learnings
 	    SET delete_flg = 1
-	    WHERE id = #{id}
+	    WHERE id = #{id};
     </update>
     
     <insert id="category_insert">

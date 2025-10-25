@@ -11,11 +11,11 @@ import com.udemy.hello.model.learning_tag;
 
 @Mapper
 public interface LearningMapper {
-	List<Learning> findAll();
+	List<Learning> findAll(int user_id);
 	List<categories> category_list();
 	List<tags> tag_list();
 	List<learning_tag> learning_tag();
-	Integer learning_one_select();
+	Integer learning_one_select(int user_id);
 	int learning_insert(Learning learning);
 	void learning_update(Learning learning);
 	void learning_tag_insert(Integer learning_id,Integer tag_id);

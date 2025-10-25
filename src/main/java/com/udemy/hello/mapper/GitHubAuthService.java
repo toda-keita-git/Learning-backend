@@ -37,6 +37,8 @@ public class GitHubAuthService {
      */
     public Map<String, Object> getAccessTokenAndRegisterUser(String code) {
         try {
+            User newUser = new User();
+
             // ====== ① access_token を取得 ======
             String accessToken = getAccessToken(code);
 

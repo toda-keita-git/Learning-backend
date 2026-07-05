@@ -1,0 +1,16 @@
+# 実行に必要な環境変数の一覧（Render等のホスティングでは環境変数として設定）
+#
+#   DB_URL               … 例) jdbc:postgresql://<host>/<db>?sslmode=require
+#   DB_USERNAME          … データベースのユーザー名
+#   DB_PASSWORD          … データベースのパスワード
+#   GITHUB_CLIENT_ID     … GitHub OAuth App の Client ID
+#   GITHUB_CLIENT_SECRET … GitHub OAuth App の Client Secret
+#   PORT                 … （任意）待受ポート。未設定なら 8080
+#
+# ローカル実行例:
+#   export DB_URL="jdbc:postgresql://localhost:5432/learning?sslmode=disable"
+#   export DB_USERNAME="postgres"
+#   export DB_PASSWORD="********"
+#   export GITHUB_CLIENT_ID="********"
+#   export GITHUB_CLIENT_SECRET="********"
+#   ./mvnw spring-boot:run

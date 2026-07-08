@@ -124,7 +124,7 @@ public class GitHubAuthService {
 
         Map<String, Object> body = Map.of(
                 "name", repoName,
-                "private", false
+                "private", true
         );
 
         HttpEntity<Map<String, Object>> entity = new HttpEntity<>(body, headers);

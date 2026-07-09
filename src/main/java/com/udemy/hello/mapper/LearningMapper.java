@@ -3,6 +3,7 @@ package com.udemy.hello.mapper;
 import java.util.ArrayList;
 import java.util.List;
 import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
 
 import com.udemy.hello.model.Learning;
 import com.udemy.hello.model.categories;
@@ -24,4 +25,12 @@ public interface LearningMapper {
 	void tags_delete(int learning_id);
 	void learning_delete(int id);
 	void category_insert(String name);
+	// カテゴリーの編集・削除・使用状況
+	void category_update(@Param("id") int id, @Param("name") String name);
+	void category_delete(int id);
+	int category_usage_count(int id);
+	// タグの編集・削除・使用状況
+	void tag_update(@Param("id") int id, @Param("name") String name);
+	void tag_delete(int id);
+	int tag_usage_count(int id);
 }

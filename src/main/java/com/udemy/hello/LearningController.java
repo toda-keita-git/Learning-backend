@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -104,7 +106,53 @@ public class LearningController {
     public List<categories> category_list(){
         return learningService.category_list();
     }
-    
+
+    // カテゴリの名前変更
+    @PostMapping("/category_update/{id}")
+    public void category_update(@PathVariable("id") int id, @RequestBody tags tag){
+        learningService.category_update(id, tag.getName());
+    }
+
+    // カテゴリの削除（使用中なら削除させない）
+    @PostMapping("/category_delete/{id}")
+    public ResponseEntity<String> category_delete(@PathVariable("id") int id){
+        int usage = learningService.category_usage_count(id);
+        if (usage > 0) {
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body("このカテゴリーは" + usage + "件の学習記録で使用中のため削除できません。");
+        }
+        learningService.category_delete(id);
+        return ResponseEntity.ok("deleted");
+    }
+
+    // タグの登録（重複時は何もしない）
+    @PostMapping("/tag_insert")
+    public void tag_insert(@RequestBody tags tag){
+        boolean exists = learningService.tag_list().stream()
+            .anyMatch(t -> t.getName().equals(tag.getName()));
+        if (!exists) {
+            learningService.tag_insert(tag.getName());
+        }
+    }
+
+    // タグの名前変更
+    @PostMapping("/tag_update/{id}")
+    public void tag_update(@PathVariable("id") int id, @RequestBody tags tag){
+        learningService.tag_update(id, tag.getName());
+    }
+
+    // タグの削除（使用中なら削除させない）
+    @PostMapping("/tag_delete/{id}")
+    public ResponseEntity<String> tag_delete(@PathVariable("id") int id){
+        int usage = learningService.tag_usage_count(id);
+        if (usage > 0) {
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body("このタグは" + usage + "件の学習記録で使用中のため削除できません。");
+        }
+        learningService.tag_delete(id);
+        return ResponseEntity.ok("deleted");
+    }
+
     // タグ一覧取得
     @GetMapping("/tag_list")
     public List<tags> tag_list(){

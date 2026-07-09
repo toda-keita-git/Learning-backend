@@ -70,4 +70,39 @@ public class LearningService {
     public void category_insert(String name) {
         learningMapper.category_insert(name);
     }
+
+    // カテゴリーの名前変更
+    public void category_update(int id, String name) {
+        learningMapper.category_update(id, name);
+    }
+
+    // カテゴリーを使用している学習記録の件数
+    public int category_usage_count(int id) {
+        return learningMapper.category_usage_count(id);
+    }
+
+    // カテゴリーの削除
+    public void category_delete(int id) {
+        learningMapper.category_delete(id);
+    }
+
+    // タグの登録
+    public void tag_insert(String name) {
+        learningMapper.tags_insert(name);
+    }
+
+    // タグの名前変更
+    public void tag_update(int id, String name) {
+        learningMapper.tag_update(id, name);
+    }
+
+    // タグを使用している学習記録（紐づけ）の件数
+    public int tag_usage_count(int id) {
+        return learningMapper.tag_usage_count(id);
+    }
+
+    // タグの削除
+    public void tag_delete(int id) {
+        learningMapper.tag_delete(id);
+    }
 }

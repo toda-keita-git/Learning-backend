@@ -144,8 +144,50 @@
     <insert id="category_insert">
         INSERT INTO categories
         (name)
-        VALUES 
+        VALUES
         (#{name});
     </insert>
-    
+
+    <!-- カテゴリーの名前変更 -->
+    <update id="category_update">
+        UPDATE categories
+        SET name = #{name}
+        WHERE id = #{id};
+    </update>
+
+    <!-- カテゴリーを使用している学習記録の件数 -->
+    <select id="category_usage_count" resultType="int">
+        SELECT COUNT(*)
+        FROM learnings
+        WHERE category_id = #{id};
+    </select>
+
+    <!-- カテゴリーの削除 -->
+    <delete id="category_delete">
+        DELETE
+        FROM categories
+        WHERE id = #{id};
+    </delete>
+
+    <!-- タグの名前変更 -->
+    <update id="tag_update">
+        UPDATE tags
+        SET name = #{name}
+        WHERE id = #{id};
+    </update>
+
+    <!-- タグを使用している学習記録（紐づけ）の件数 -->
+    <select id="tag_usage_count" resultType="int">
+        SELECT COUNT(*)
+        FROM learning_tags
+        WHERE tag_id = #{id};
+    </select>
+
+    <!-- タグの削除 -->
+    <delete id="tag_delete">
+        DELETE
+        FROM tags
+        WHERE id = #{id};
+    </delete>
+
 </mapper>

@@ -2,6 +2,7 @@ package com.udemy.hello;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -19,6 +20,7 @@ import com.udemy.hello.model.Learning;
 import com.udemy.hello.model.categories;
 import com.udemy.hello.model.tags;
 import com.udemy.hello.model.learning_tag;
+import com.udemy.hello.model.PlanInterest;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -165,5 +167,17 @@ public class LearningController {
     @GetMapping("/learning_tag_list")
     public List<learning_tag> learning_tag(){
         return learningService.learning_tag();
+    }
+
+    // Proプラン「通知を希望する」の登録（同じユーザーが複数回押しても1件のみ記録される）
+    @PostMapping("/plan_interest_register")
+    public void plan_interest_register(@RequestBody PlanInterest planInterest){
+        learningService.plan_interest_insert(planInterest);
+    }
+
+    // 指定ユーザーが既に「通知を希望する」を押しているか
+    @GetMapping("/plan_interest_check")
+    public Map<String, Boolean> plan_interest_check(@RequestParam("user_id") int user_id){
+        return Map.of("requested", learningService.plan_interest_exists(user_id));
     }
 }

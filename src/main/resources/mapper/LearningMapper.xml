@@ -190,4 +190,20 @@
         WHERE id = #{id};
     </delete>
 
+    <!-- Proプラン「通知を希望する」の登録（同じユーザーの二重登録は無視） -->
+    <insert id="plan_interest_insert" parameterType="PlanInterest">
+        INSERT INTO plan_interests
+        (user_id, github_login, created_at)
+        VALUES
+        (#{user_id}, #{github_login}, NOW())
+        ON CONFLICT (user_id) DO NOTHING;
+    </insert>
+
+    <!-- 既に登録済みかどうか -->
+    <select id="plan_interest_exists" resultType="int">
+        SELECT COUNT(*)
+        FROM plan_interests
+        WHERE user_id = #{user_id};
+    </select>
+
 </mapper>

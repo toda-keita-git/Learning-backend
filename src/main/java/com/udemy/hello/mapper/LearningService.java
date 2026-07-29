@@ -9,6 +9,7 @@ import com.udemy.hello.model.Learning;
 import com.udemy.hello.model.categories;
 import com.udemy.hello.model.tags;
 import com.udemy.hello.model.learning_tag;
+import com.udemy.hello.model.PlanInterest;
 
 @Service
 public class LearningService {
@@ -104,5 +105,15 @@ public class LearningService {
     // タグの削除
     public void tag_delete(int id) {
         learningMapper.tag_delete(id);
+    }
+
+    // Proプラン「通知を希望する」の登録
+    public void plan_interest_insert(PlanInterest planInterest) {
+        learningMapper.plan_interest_insert(planInterest);
+    }
+
+    // 既に登録済みかどうか
+    public boolean plan_interest_exists(int user_id) {
+        return learningMapper.plan_interest_exists(user_id) > 0;
     }
 }

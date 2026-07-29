@@ -29,8 +29,11 @@ import lombok.extern.slf4j.Slf4j;
 @CrossOrigin(origins = "${frontend.origin}")
 public class LearningController {
 
+    // カテゴリー・タグは全ユーザー共有のため、編集・削除は管理者（id=1）のみ許可する
+    private static final int ADMIN_USER_ID = 1;
+
     private final LearningApplication learningApplication;
-    
+
     @Autowired
     LearningService learningService;
 
@@ -111,15 +114,22 @@ public class LearningController {
         return learningService.category_list();
     }
 
-    // カテゴリの名前変更
+    // カテゴリの名前変更（カテゴリーは全ユーザー共有のため、管理者のみ許可）
     @PostMapping("/category_update/{id}")
-    public void category_update(@PathVariable("id") int id, @RequestBody tags tag){
+    public ResponseEntity<String> category_update(@PathVariable("id") int id, @RequestBody tags tag, @RequestParam("user_id") int user_id){
+        if (user_id != ADMIN_USER_ID) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("カテゴリーの編集は管理者のみ行えます。");
+        }
         learningService.category_update(id, tag.getName());
+        return ResponseEntity.ok("updated");
     }
 
-    // カテゴリの削除（使用中なら削除させない）
+    // カテゴリの削除（使用中なら削除させない。管理者のみ許可）
     @PostMapping("/category_delete/{id}")
-    public ResponseEntity<String> category_delete(@PathVariable("id") int id){
+    public ResponseEntity<String> category_delete(@PathVariable("id") int id, @RequestParam("user_id") int user_id){
+        if (user_id != ADMIN_USER_ID) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("カテゴリーの削除は管理者のみ行えます。");
+        }
         int usage = learningService.category_usage_count(id);
         if (usage > 0) {
             return ResponseEntity.status(HttpStatus.CONFLICT)
@@ -139,15 +149,22 @@ public class LearningController {
         }
     }
 
-    // タグの名前変更
+    // タグの名前変更（タグは全ユーザー共有のため、管理者のみ許可）
     @PostMapping("/tag_update/{id}")
-    public void tag_update(@PathVariable("id") int id, @RequestBody tags tag){
+    public ResponseEntity<String> tag_update(@PathVariable("id") int id, @RequestBody tags tag, @RequestParam("user_id") int user_id){
+        if (user_id != ADMIN_USER_ID) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("タグの編集は管理者のみ行えます。");
+        }
         learningService.tag_update(id, tag.getName());
+        return ResponseEntity.ok("updated");
     }
 
-    // タグの削除（使用中なら削除させない）
+    // タグの削除（使用中なら削除させない。管理者のみ許可）
     @PostMapping("/tag_delete/{id}")
-    public ResponseEntity<String> tag_delete(@PathVariable("id") int id){
+    public ResponseEntity<String> tag_delete(@PathVariable("id") int id, @RequestParam("user_id") int user_id){
+        if (user_id != ADMIN_USER_ID) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("タグの削除は管理者のみ行えます。");
+        }
         int usage = learningService.tag_usage_count(id);
         if (usage > 0) {
             return ResponseEntity.status(HttpStatus.CONFLICT)

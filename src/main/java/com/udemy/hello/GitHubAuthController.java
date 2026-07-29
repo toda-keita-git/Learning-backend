@@ -1,12 +1,13 @@
 package com.udemy.hello;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.*;
 import com.udemy.hello.mapper.GitHubAuthService;
 import java.util.Map;
 
 @RestController
-@CrossOrigin(origins = "https://learning-frontend-x5jf.onrender.com")
+@CrossOrigin(origins = "${frontend.origin}")
 @RequestMapping("/github")
 public class GitHubAuthController {
 

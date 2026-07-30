@@ -121,6 +121,7 @@
         WHERE learning_id = #{learning_id};
     </delete>
     
+    <!-- WHERE に user_id も含めることで、本人が作成した記録以外は更新されない（0件のまま）ようにする -->
     <update id="learning_update">
     	UPDATE learnings
         SET title = #{title},
@@ -132,13 +133,14 @@
             github_path = #{github_path},
             commit_sha = #{commit_sha},
             user_id = #{user_id}
-        WHERE id = #{id};
+        WHERE id = #{id} AND user_id = #{user_id};
     </update>
-    
+
+    <!-- WHERE に user_id も含めることで、本人が作成した記録以外は削除されない（0件のまま）ようにする -->
     <update id="learning_delete">
 	    UPDATE learnings
 	    SET delete_flg = 1
-	    WHERE id = #{id};
+	    WHERE id = #{id} AND user_id = #{user_id};
     </update>
     
     <insert id="category_insert">

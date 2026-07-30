@@ -3,6 +3,7 @@ package com.udemy.hello.mapper;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.udemy.hello.mapper.UserMapper;
 import com.udemy.hello.model.User;
+import com.udemy.hello.security.JwtService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,6 +30,9 @@ public class GitHubAuthService {
 
     @Autowired
     private UserMapper userMapper; // MyBatis Mapper
+
+    @Autowired
+    private JwtService jwtService;
 
     private final RestTemplate restTemplate = new RestTemplate();
 
@@ -97,12 +101,18 @@ public class GitHubAuthService {
             }
 
             // ====== ④ レスポンス返却 ======
+            int userId = existingUser != null ? existingUser.getId() : newUser.getId();
+
             Map<String, Object> result = new HashMap<>();
             result.put("access_token", accessToken);
             result.put("github_login", githubLogin);
             result.put("email", email);
             result.put("avatar_url", avatarUrl);
-            result.put("user_id", existingUser != null ? existingUser.getId() : newUser.getId());
+            result.put("user_id", userId);
+            // 以降のAPI呼び出しの本人確認に使う、こちらが署名したトークン。
+            // access_tokenはGitHub API呼び出し専用として使い続け、
+            // このアプリのAPIに対する本人確認にはapp_tokenを使う
+            result.put("app_token", jwtService.issueToken(userId, githubLogin));
 
             return result;
 

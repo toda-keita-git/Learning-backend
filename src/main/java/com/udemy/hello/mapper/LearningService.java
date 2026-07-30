@@ -56,16 +56,16 @@ public class LearningService {
         return learningMapper.tags_search(name);
     }
 
-    public void learning_update(Learning learning) {
-        learningMapper.learning_update(learning);
+    public int learning_update(Learning learning) {
+        return learningMapper.learning_update(learning);
     }
 
     public void tags_delete(int learning_id) {
         learningMapper.tags_delete(learning_id);
     }
 
-    public void learning_delete(int id) {
-        learningMapper.learning_delete(id);
+    public int learning_delete(int id, int userId) {
+        return learningMapper.learning_delete(id, userId);
     }
 
     public void category_insert(String name) {

@@ -90,6 +90,25 @@
         <artifactId>gson</artifactId>
         <version>2.10.1</version>
     </dependency>
+
+    <!-- ログイン後の本人確認用トークン(JWT)の発行・検証 -->
+    <dependency>
+        <groupId>io.jsonwebtoken</groupId>
+        <artifactId>jjwt-api</artifactId>
+        <version>0.12.6</version>
+    </dependency>
+    <dependency>
+        <groupId>io.jsonwebtoken</groupId>
+        <artifactId>jjwt-impl</artifactId>
+        <version>0.12.6</version>
+        <scope>runtime</scope>
+    </dependency>
+    <dependency>
+        <groupId>io.jsonwebtoken</groupId>
+        <artifactId>jjwt-jackson</artifactId>
+        <version>0.12.6</version>
+        <scope>runtime</scope>
+    </dependency>
 	</dependencies>
 
 	<build>

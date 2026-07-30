@@ -11,7 +11,6 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.CrossOrigin;
 
@@ -21,7 +20,9 @@ import com.udemy.hello.model.categories;
 import com.udemy.hello.model.tags;
 import com.udemy.hello.model.learning_tag;
 import com.udemy.hello.model.PlanInterest;
+import com.udemy.hello.security.JwtAuthInterceptor;
 
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -40,19 +41,22 @@ public class LearningController {
     LearningController(LearningApplication learningApplication) {
         this.learningApplication = learningApplication;
     }
-    
-    // ユーザーIDを指定して学習情報を取得
+
+    // ログイン中の本人の学習情報を取得（user_idはJWTで検証済みのものを使う。クライアントの自己申告は信用しない）
     @GetMapping("/learning")
-    public List<Learning> findALL(@RequestParam("user_id") int user_id){
-        return learningService.findALL(user_id);
+    public List<Learning> findALL(HttpServletRequest request){
+        int userId = JwtAuthInterceptor.getVerifiedUserId(request);
+        return learningService.findALL(userId);
     }
-    
-    // 学習情報の登録
+
+    // 学習情報の登録（user_idはJWTで検証済みの本人のものを強制的に使う）
     @PostMapping("/learning_insert")
-    public void learning_insert(@RequestBody Learning learning){
-        // user_idが必ずセットされている前提
+    public void learning_insert(@RequestBody Learning learning, HttpServletRequest request){
+        int userId = JwtAuthInterceptor.getVerifiedUserId(request);
+        learning.setUser_id(userId);
+
         learningService.learning_insert(learning);
-        int learning_id = learningService.learning_one_select(learning.getUser_id());
+        int learning_id = learningService.learning_one_select(userId);
 
         // タグの存在確認と挿入
         for (String name : learning.getTags()) {
@@ -70,11 +74,18 @@ public class LearningController {
             learningService.learning_tag_insert(learning_id, id);
         }
     }
-    
-    // 学習情報の更新
+
+    // 学習情報の更新（本人が作成した記録以外は更新できない）
     @PostMapping("/learning_update/{learning_Id}")
-    public void learning_update(@RequestBody Learning learning){
-        learningService.learning_update(learning);
+    public ResponseEntity<String> learning_update(@RequestBody Learning learning, HttpServletRequest request){
+        int userId = JwtAuthInterceptor.getVerifiedUserId(request);
+        learning.setUser_id(userId);
+
+        int updated = learningService.learning_update(learning);
+        if (updated == 0) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("この学習記録を編集する権限がありません。");
+        }
+
         int learning_id = learning.getId();
 
         // タグの存在確認と挿入
@@ -94,20 +105,27 @@ public class LearningController {
         for (Integer id : tags_id) {
             learningService.learning_tag_insert(learning_id, id);
         }
+
+        return ResponseEntity.ok("updated");
     }
-    
-    // 学習情報の削除
+
+    // 学習情報の削除（本人が作成した記録以外は削除できない）
     @PostMapping("/learning_delete/{id}")
-    public void learning_delete(@PathVariable("id") int id){
-        learningService.learning_delete(id);
+    public ResponseEntity<String> learning_delete(@PathVariable("id") int id, HttpServletRequest request){
+        int userId = JwtAuthInterceptor.getVerifiedUserId(request);
+        int deleted = learningService.learning_delete(id, userId);
+        if (deleted == 0) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("この学習記録を削除する権限がありません。");
+        }
+        return ResponseEntity.ok("deleted");
     }
-    
+
     // カテゴリの登録
     @PostMapping("/category_insert")
     public void category_insert(@RequestBody tags tag){
         learningService.category_insert(tag.getName());
     }
-    
+
     // カテゴリ一覧取得
     @GetMapping("/category_list")
     public List<categories> category_list(){
@@ -116,8 +134,9 @@ public class LearningController {
 
     // カテゴリの名前変更（カテゴリーは全ユーザー共有のため、管理者のみ許可）
     @PostMapping("/category_update/{id}")
-    public ResponseEntity<String> category_update(@PathVariable("id") int id, @RequestBody tags tag, @RequestParam("user_id") int user_id){
-        if (user_id != ADMIN_USER_ID) {
+    public ResponseEntity<String> category_update(@PathVariable("id") int id, @RequestBody tags tag, HttpServletRequest request){
+        int userId = JwtAuthInterceptor.getVerifiedUserId(request);
+        if (userId != ADMIN_USER_ID) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body("カテゴリーの編集は管理者のみ行えます。");
         }
         learningService.category_update(id, tag.getName());
@@ -126,8 +145,9 @@ public class LearningController {
 
     // カテゴリの削除（使用中なら削除させない。管理者のみ許可）
     @PostMapping("/category_delete/{id}")
-    public ResponseEntity<String> category_delete(@PathVariable("id") int id, @RequestParam("user_id") int user_id){
-        if (user_id != ADMIN_USER_ID) {
+    public ResponseEntity<String> category_delete(@PathVariable("id") int id, HttpServletRequest request){
+        int userId = JwtAuthInterceptor.getVerifiedUserId(request);
+        if (userId != ADMIN_USER_ID) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body("カテゴリーの削除は管理者のみ行えます。");
         }
         int usage = learningService.category_usage_count(id);
@@ -151,8 +171,9 @@ public class LearningController {
 
     // タグの名前変更（タグは全ユーザー共有のため、管理者のみ許可）
     @PostMapping("/tag_update/{id}")
-    public ResponseEntity<String> tag_update(@PathVariable("id") int id, @RequestBody tags tag, @RequestParam("user_id") int user_id){
-        if (user_id != ADMIN_USER_ID) {
+    public ResponseEntity<String> tag_update(@PathVariable("id") int id, @RequestBody tags tag, HttpServletRequest request){
+        int userId = JwtAuthInterceptor.getVerifiedUserId(request);
+        if (userId != ADMIN_USER_ID) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body("タグの編集は管理者のみ行えます。");
         }
         learningService.tag_update(id, tag.getName());
@@ -161,8 +182,9 @@ public class LearningController {
 
     // タグの削除（使用中なら削除させない。管理者のみ許可）
     @PostMapping("/tag_delete/{id}")
-    public ResponseEntity<String> tag_delete(@PathVariable("id") int id, @RequestParam("user_id") int user_id){
-        if (user_id != ADMIN_USER_ID) {
+    public ResponseEntity<String> tag_delete(@PathVariable("id") int id, HttpServletRequest request){
+        int userId = JwtAuthInterceptor.getVerifiedUserId(request);
+        if (userId != ADMIN_USER_ID) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body("タグの削除は管理者のみ行えます。");
         }
         int usage = learningService.tag_usage_count(id);
@@ -179,7 +201,7 @@ public class LearningController {
     public List<tags> tag_list(){
         return learningService.tag_list();
     }
-    
+
     // 学習タグ一覧取得
     @GetMapping("/learning_tag_list")
     public List<learning_tag> learning_tag(){
@@ -188,13 +210,19 @@ public class LearningController {
 
     // Proプラン「通知を希望する」の登録（同じユーザーが複数回押しても1件のみ記録される）
     @PostMapping("/plan_interest_register")
-    public void plan_interest_register(@RequestBody PlanInterest planInterest){
+    public void plan_interest_register(HttpServletRequest request){
+        int userId = JwtAuthInterceptor.getVerifiedUserId(request);
+        String githubLogin = JwtAuthInterceptor.getVerifiedGithubLogin(request);
+        PlanInterest planInterest = new PlanInterest();
+        planInterest.setUser_id(userId);
+        planInterest.setGithub_login(githubLogin);
         learningService.plan_interest_insert(planInterest);
     }
 
-    // 指定ユーザーが既に「通知を希望する」を押しているか
+    // 自分が既に「通知を希望する」を押しているか
     @GetMapping("/plan_interest_check")
-    public Map<String, Boolean> plan_interest_check(@RequestParam("user_id") int user_id){
-        return Map.of("requested", learningService.plan_interest_exists(user_id));
+    public Map<String, Boolean> plan_interest_check(HttpServletRequest request){
+        int userId = JwtAuthInterceptor.getVerifiedUserId(request);
+        return Map.of("requested", learningService.plan_interest_exists(userId));
     }
 }

@@ -7,6 +7,7 @@
     <resultMap id="Learning" type="Learning">
         <id property="id" column="id" />
         <result property="title" column="title" />
+        <result property="heading_text" column="heading_text" />
         <result property="explanatory_text" column="explanatory_text" />
         <result property="understanding_level" column="understanding_level" />
         <result property="reference_url" column="reference_url" />
@@ -96,9 +97,9 @@
     <!-- 学習データ挿入にuser_idを追加 -->
     <insert id="learning_insert">
     	INSERT INTO learnings
-        (title, explanatory_text, understanding_level, reference_url, created_at, category_id, github_path, commit_sha, user_id)
-        VALUES 
-        (#{title}, #{explanatory_text}, #{understanding_level}, #{reference_url}, #{created_at}, #{category_id}, #{github_path}, #{commit_sha}, #{user_id});
+        (title, heading_text, explanatory_text, understanding_level, reference_url, created_at, category_id, github_path, commit_sha, user_id)
+        VALUES
+        (#{title}, #{heading_text}, #{explanatory_text}, #{understanding_level}, #{reference_url}, #{created_at}, #{category_id}, #{github_path}, #{commit_sha}, #{user_id});
     </insert>
     
     <select id="learning_one_select" resultMap="Learning_i">
@@ -140,6 +141,7 @@
     <update id="learning_update">
     	UPDATE learnings
         SET title = #{title},
+            heading_text = #{heading_text},
             explanatory_text = #{explanatory_text},
             understanding_level = #{understanding_level},
             reference_url = #{reference_url},

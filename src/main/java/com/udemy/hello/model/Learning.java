@@ -12,6 +12,9 @@ import lombok.Data;
 public class Learning {
 	private Integer id;
 	private String title;
+	// 検索結果一覧のプレビューに表示する見出し。未設定ならexplanatory_textの
+	// 先頭部分がフロント側で代わりに表示される
+	private String heading_text;
 	private String explanatory_text;
 	private Integer understanding_level;
 	private String reference_url;

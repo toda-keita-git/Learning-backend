@@ -23,7 +23,11 @@ import io.jsonwebtoken.security.Keys;
 @Component
 public class JwtService {
 
-    private static final Duration EXPIRATION = Duration.ofHours(24);
+    // ログイン状態をlocalStorageへ永続化し、オフラインでも開き直せるようにしている
+    // （AuthProvider参照）。有効期限を短くしすぎると、オフラインが続く間に
+    // トークンが切れて再ログイン（＝通信必須）を求められ、オフライン対応の
+    // 意味が薄れてしまうため、ある程度長めに設定する
+    private static final Duration EXPIRATION = Duration.ofDays(30);
 
     private final SecretKey key;
 

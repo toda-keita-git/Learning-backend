@@ -13,9 +13,10 @@ public class WebConfig implements WebMvcConfigurer {
 
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
-        // ログイン(/github/**)とヘルスチェック(/ping)以外の全エンドポイントで本人確認を必須にする
+        // ログイン(/github/**)・ヘルスチェック(/ping)・未ログイン訪問者も送れるお問い合わせ(/inquiry_submit)以外の
+        // 全エンドポイントで本人確認を必須にする
         registry.addInterceptor(jwtAuthInterceptor)
                 .addPathPatterns("/**")
-                .excludePathPatterns("/github/**", "/ping");
+                .excludePathPatterns("/github/**", "/ping", "/inquiry_submit");
     }
 }

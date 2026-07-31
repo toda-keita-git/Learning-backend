@@ -10,6 +10,7 @@ import com.udemy.hello.model.categories;
 import com.udemy.hello.model.tags;
 import com.udemy.hello.model.learning_tag;
 import com.udemy.hello.model.PlanInterest;
+import com.udemy.hello.model.Inquiry;
 
 @Service
 public class LearningService {
@@ -115,5 +116,20 @@ public class LearningService {
     // 既に登録済みかどうか
     public boolean plan_interest_exists(int user_id) {
         return learningMapper.plan_interest_exists(user_id) > 0;
+    }
+
+    // お問い合わせの登録
+    public void inquiry_insert(Inquiry inquiry) {
+        learningMapper.inquiry_insert(inquiry);
+    }
+
+    // お問い合わせ一覧（新しい順）
+    public List<Inquiry> inquiry_list() {
+        return learningMapper.inquiry_list();
+    }
+
+    // お問い合わせのステータス更新
+    public int inquiry_status_update(int id, String status) {
+        return learningMapper.inquiry_status_update(id, status);
     }
 }

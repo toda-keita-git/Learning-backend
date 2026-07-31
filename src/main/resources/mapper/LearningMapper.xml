@@ -38,6 +38,15 @@
         <id property="id" column="id" />
         <result property="name" column="name" />
     </resultMap>
+
+    <resultMap id="Inquiry" type="Inquiry">
+        <id property="id" column="id" />
+        <result property="name" column="name" />
+        <result property="email" column="email" />
+        <result property="message" column="message" />
+        <result property="status" column="status" />
+        <result property="created_at" column="created_at" />
+    </resultMap>
     
     <resultMap id="tag" type="Integer">
         <id property="id" column="id" />
@@ -207,5 +216,27 @@
         FROM plan_interests
         WHERE user_id = #{user_id};
     </select>
+
+    <!-- お問い合わせの登録（未ログインの訪問者からも送信されるためuser_idは持たない） -->
+    <insert id="inquiry_insert" parameterType="Inquiry">
+        INSERT INTO inquiries
+        (name, email, message, status, created_at)
+        VALUES
+        (#{name}, #{email}, #{message}, 'new', now());
+    </insert>
+
+    <!-- お問い合わせ一覧（新しい順） -->
+    <select id="inquiry_list" resultMap="Inquiry">
+        SELECT id, name, email, message, status, created_at
+        FROM inquiries
+        ORDER BY created_at DESC;
+    </select>
+
+    <!-- お問い合わせのステータス更新（new → read → done） -->
+    <update id="inquiry_status_update">
+        UPDATE inquiries
+        SET status = #{status}
+        WHERE id = #{id};
+    </update>
 
 </mapper>

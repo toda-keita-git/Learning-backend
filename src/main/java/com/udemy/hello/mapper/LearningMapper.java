@@ -10,6 +10,7 @@ import com.udemy.hello.model.categories;
 import com.udemy.hello.model.tags;
 import com.udemy.hello.model.learning_tag;
 import com.udemy.hello.model.PlanInterest;
+import com.udemy.hello.model.Inquiry;
 
 @Mapper
 public interface LearningMapper {
@@ -39,4 +40,8 @@ public interface LearningMapper {
 	// Proプラン「通知を希望する」
 	void plan_interest_insert(PlanInterest planInterest);
 	int plan_interest_exists(int user_id);
+	// お問い合わせ
+	void inquiry_insert(Inquiry inquiry);
+	List<Inquiry> inquiry_list();
+	int inquiry_status_update(@Param("id") int id, @Param("status") String status);
 }

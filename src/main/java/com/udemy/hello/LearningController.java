@@ -20,6 +20,7 @@ import com.udemy.hello.model.categories;
 import com.udemy.hello.model.tags;
 import com.udemy.hello.model.learning_tag;
 import com.udemy.hello.model.PlanInterest;
+import com.udemy.hello.model.Inquiry;
 import com.udemy.hello.security.JwtAuthInterceptor;
 
 import jakarta.servlet.http.HttpServletRequest;
@@ -224,5 +225,37 @@ public class LearningController {
     public Map<String, Boolean> plan_interest_check(HttpServletRequest request){
         int userId = JwtAuthInterceptor.getVerifiedUserId(request);
         return Map.of("requested", learningService.plan_interest_exists(userId));
+    }
+
+    // お問い合わせの送信（未ログインの一般訪問者も送れるよう認証不要。WebConfigで/inquiry_submitを除外している）
+    @PostMapping("/inquiry_submit")
+    public ResponseEntity<String> inquiry_submit(@RequestBody Inquiry inquiry){
+        if (inquiry.getEmail() == null || inquiry.getEmail().isBlank()
+                || inquiry.getMessage() == null || inquiry.getMessage().isBlank()) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("メールアドレスとお問い合わせ内容は必須です。");
+        }
+        learningService.inquiry_insert(inquiry);
+        return ResponseEntity.ok("submitted");
+    }
+
+    // お問い合わせ一覧の取得（管理者のみ）
+    @GetMapping("/inquiry_list")
+    public ResponseEntity<List<Inquiry>> inquiry_list(HttpServletRequest request){
+        int userId = JwtAuthInterceptor.getVerifiedUserId(request);
+        if (userId != ADMIN_USER_ID) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+        return ResponseEntity.ok(learningService.inquiry_list());
+    }
+
+    // お問い合わせのステータス更新（管理者のみ。new→read→done）
+    @PostMapping("/inquiry_status/{id}")
+    public ResponseEntity<String> inquiry_status_update(@PathVariable("id") int id, @RequestBody Map<String, String> body, HttpServletRequest request){
+        int userId = JwtAuthInterceptor.getVerifiedUserId(request);
+        if (userId != ADMIN_USER_ID) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("お問い合わせの管理は管理者のみ行えます。");
+        }
+        learningService.inquiry_status_update(id, body.get("status"));
+        return ResponseEntity.ok("updated");
     }
 }

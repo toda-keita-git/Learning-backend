@@ -9,4 +9,5 @@ import lombok.Data;
 public class categories {
 	private Integer id;
 	private String name;
+	private Integer user_id;
 }

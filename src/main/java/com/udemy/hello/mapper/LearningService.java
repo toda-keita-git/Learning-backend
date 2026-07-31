@@ -14,27 +14,40 @@ import com.udemy.hello.model.Inquiry;
 
 @Service
 public class LearningService {
-    
+
+    // 新規ユーザー登録時に自動で用意するカテゴリー・タグの初期セット（一般＋プログラミング関連）
+    private static final List<String> DEFAULT_CATEGORIES = List.of(
+        "仕事", "学業", "資格・検定", "語学", "趣味", "健康・生活",
+        "プログラミング", "Web開発", "インフラ・クラウド", "データベース"
+    );
+
+    private static final List<String> DEFAULT_TAGS = List.of(
+        "メモ", "復習", "重要", "あとで",
+        "JavaScript", "TypeScript", "Python", "Java", "SQL",
+        "Git", "React", "Spring", "Docker", "AWS"
+    );
+
     @Autowired
     private LearningMapper learningMapper;
-    
+
     // ユーザーID指定で全学習情報取得
     public List<Learning> findALL(int user_id) {
         return learningMapper.findAll(user_id);
     }
-    
-    public List<categories> category_list() {
-        return learningMapper.category_list();
+
+    // カテゴリー・タグは個人ごとに管理するため、本人のものだけを取得する
+    public List<categories> category_list(int userId) {
+        return learningMapper.category_list(userId);
     }
-    
-    public List<tags> tag_list() {
-        return learningMapper.tag_list();
+
+    public List<tags> tag_list(int userId) {
+        return learningMapper.tag_list(userId);
     }
-    
-    public List<learning_tag> learning_tag() {
-        return learningMapper.learning_tag();
+
+    public List<learning_tag> learning_tag(int userId) {
+        return learningMapper.learning_tag(userId);
     }
-    
+
     // 学習情報登録（user_idを含む）
     public int learning_insert(Learning learning) {
         return learningMapper.learning_insert(learning);
@@ -44,17 +57,17 @@ public class LearningService {
     public Integer learning_one_select(int user_id) {
         return learningMapper.learning_one_select(user_id);
     }
-    
+
     public void learning_tag_insert(Integer learning_id,Integer tag_id) {
         learningMapper.learning_tag_insert(learning_id, tag_id);
     }
-    
-    public void tags_insert(String name) {
-        learningMapper.tags_insert(name);
+
+    public void tags_insert(String name, int userId) {
+        learningMapper.tags_insert(name, userId);
     }
-    
-    public Integer tags_search(String name) {
-        return learningMapper.tags_search(name);
+
+    public Integer tags_search(String name, int userId) {
+        return learningMapper.tags_search(name, userId);
     }
 
     public int learning_update(Learning learning) {
@@ -69,43 +82,53 @@ public class LearningService {
         return learningMapper.learning_delete(id, userId);
     }
 
-    public void category_insert(String name) {
-        learningMapper.category_insert(name);
+    public void category_insert(String name, int userId) {
+        learningMapper.category_insert(name, userId);
     }
 
-    // カテゴリーの名前変更
-    public void category_update(int id, String name) {
-        learningMapper.category_update(id, name);
+    // カテゴリーの名前変更（戻り値は更新件数。本人が作成したもの以外は0件のまま）
+    public int category_update(int id, String name, int userId) {
+        return learningMapper.category_update(id, name, userId);
     }
 
-    // カテゴリーを使用している学習記録の件数
-    public int category_usage_count(int id) {
-        return learningMapper.category_usage_count(id);
+    // カテゴリーを使用している（本人の）学習記録の件数
+    public int category_usage_count(int id, int userId) {
+        return learningMapper.category_usage_count(id, userId);
     }
 
-    // カテゴリーの削除
-    public void category_delete(int id) {
-        learningMapper.category_delete(id);
+    // カテゴリーの削除（戻り値は削除件数。本人が作成したもの以外は0件のまま）
+    public int category_delete(int id, int userId) {
+        return learningMapper.category_delete(id, userId);
     }
 
     // タグの登録
-    public void tag_insert(String name) {
-        learningMapper.tags_insert(name);
+    public void tag_insert(String name, int userId) {
+        learningMapper.tags_insert(name, userId);
     }
 
-    // タグの名前変更
-    public void tag_update(int id, String name) {
-        learningMapper.tag_update(id, name);
+    // タグの名前変更（戻り値は更新件数。本人が作成したもの以外は0件のまま）
+    public int tag_update(int id, String name, int userId) {
+        return learningMapper.tag_update(id, name, userId);
     }
 
-    // タグを使用している学習記録（紐づけ）の件数
-    public int tag_usage_count(int id) {
-        return learningMapper.tag_usage_count(id);
+    // タグを使用している（本人の）学習記録（紐づけ）の件数
+    public int tag_usage_count(int id, int userId) {
+        return learningMapper.tag_usage_count(id, userId);
     }
 
-    // タグの削除
-    public void tag_delete(int id) {
-        learningMapper.tag_delete(id);
+    // タグの削除（戻り値は削除件数。本人が作成したもの以外は0件のまま）
+    public int tag_delete(int id, int userId) {
+        return learningMapper.tag_delete(id, userId);
+    }
+
+    // 新規ユーザー登録時に、一般＋プログラミング関連の初期カテゴリー・タグを用意する
+    public void seedDefaultCategoriesAndTags(int userId) {
+        for (String name : DEFAULT_CATEGORIES) {
+            learningMapper.category_insert(name, userId);
+        }
+        for (String name : DEFAULT_TAGS) {
+            learningMapper.tags_insert(name, userId);
+        }
     }
 
     // Proプラン「通知を希望する」の登録

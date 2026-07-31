@@ -31,7 +31,7 @@ import lombok.extern.slf4j.Slf4j;
 @CrossOrigin(origins = "${frontend.origin}")
 public class LearningController {
 
-    // カテゴリー・タグは全ユーザー共有のため、編集・削除は管理者（id=1）のみ許可する
+    // お問い合わせ管理など、管理者専用の機能でのみ使用する
     private static final int ADMIN_USER_ID = 1;
 
     private final LearningApplication learningApplication;
@@ -59,16 +59,16 @@ public class LearningController {
         learningService.learning_insert(learning);
         int learning_id = learningService.learning_one_select(userId);
 
-        // タグの存在確認と挿入
+        // タグの存在確認と挿入（タグは個人ごとに管理するため、本人のタグの中だけで確認する）
         for (String name : learning.getTags()) {
-            if (!learningService.tag_list().stream().anyMatch(tags -> tags.getName().equals(name))) {
-                learningService.tags_insert(name);
+            if (!learningService.tag_list(userId).stream().anyMatch(tags -> tags.getName().equals(name))) {
+                learningService.tags_insert(name, userId);
             }
         }
 
         ArrayList<Integer> tags_id = new ArrayList<>();
         for (String name : learning.getTags()) {
-            tags_id.add(learningService.tags_search(name));
+            tags_id.add(learningService.tags_search(name, userId));
         }
 
         for (Integer id : tags_id) {
@@ -89,16 +89,16 @@ public class LearningController {
 
         int learning_id = learning.getId();
 
-        // タグの存在確認と挿入
+        // タグの存在確認と挿入（タグは個人ごとに管理するため、本人のタグの中だけで確認する）
         for (String name : learning.getTags()) {
-            if (!learningService.tag_list().stream().anyMatch(tags -> tags.getName().equals(name))) {
-                learningService.tags_insert(name);
+            if (!learningService.tag_list(userId).stream().anyMatch(tags -> tags.getName().equals(name))) {
+                learningService.tags_insert(name, userId);
             }
         }
 
         ArrayList<Integer> tags_id = new ArrayList<>();
         for (String name : learning.getTags()) {
-            tags_id.add(learningService.tags_search(name));
+            tags_id.add(learningService.tags_search(name, userId));
         }
 
         // 既存タグを削除して更新
@@ -121,92 +121,97 @@ public class LearningController {
         return ResponseEntity.ok("deleted");
     }
 
-    // カテゴリの登録
+    // カテゴリの登録（本人専用のカテゴリーとして登録される）
     @PostMapping("/category_insert")
-    public void category_insert(@RequestBody tags tag){
-        learningService.category_insert(tag.getName());
+    public void category_insert(@RequestBody tags tag, HttpServletRequest request){
+        int userId = JwtAuthInterceptor.getVerifiedUserId(request);
+        learningService.category_insert(tag.getName(), userId);
     }
 
-    // カテゴリ一覧取得
+    // カテゴリ一覧取得（本人のものだけ）
     @GetMapping("/category_list")
-    public List<categories> category_list(){
-        return learningService.category_list();
+    public List<categories> category_list(HttpServletRequest request){
+        int userId = JwtAuthInterceptor.getVerifiedUserId(request);
+        return learningService.category_list(userId);
     }
 
-    // カテゴリの名前変更（カテゴリーは全ユーザー共有のため、管理者のみ許可）
+    // カテゴリの名前変更（カテゴリーは個人ごとに管理するため、本人が作成したもの以外は編集できない）
     @PostMapping("/category_update/{id}")
     public ResponseEntity<String> category_update(@PathVariable("id") int id, @RequestBody tags tag, HttpServletRequest request){
         int userId = JwtAuthInterceptor.getVerifiedUserId(request);
-        if (userId != ADMIN_USER_ID) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("カテゴリーの編集は管理者のみ行えます。");
+        int updated = learningService.category_update(id, tag.getName(), userId);
+        if (updated == 0) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("このカテゴリーを編集する権限がありません。");
         }
-        learningService.category_update(id, tag.getName());
         return ResponseEntity.ok("updated");
     }
 
-    // カテゴリの削除（使用中なら削除させない。管理者のみ許可）
+    // カテゴリの削除（使用中なら削除させない。本人が作成したもの以外は削除できない）
     @PostMapping("/category_delete/{id}")
     public ResponseEntity<String> category_delete(@PathVariable("id") int id, HttpServletRequest request){
         int userId = JwtAuthInterceptor.getVerifiedUserId(request);
-        if (userId != ADMIN_USER_ID) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("カテゴリーの削除は管理者のみ行えます。");
-        }
-        int usage = learningService.category_usage_count(id);
+        int usage = learningService.category_usage_count(id, userId);
         if (usage > 0) {
             return ResponseEntity.status(HttpStatus.CONFLICT)
                 .body("このカテゴリーは" + usage + "件の学習記録で使用中のため削除できません。");
         }
-        learningService.category_delete(id);
+        int deleted = learningService.category_delete(id, userId);
+        if (deleted == 0) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("このカテゴリーを削除する権限がありません。");
+        }
         return ResponseEntity.ok("deleted");
     }
 
-    // タグの登録（重複時は何もしない）
+    // タグの登録（本人専用のタグとして登録される。重複時は何もしない）
     @PostMapping("/tag_insert")
-    public void tag_insert(@RequestBody tags tag){
-        boolean exists = learningService.tag_list().stream()
+    public void tag_insert(@RequestBody tags tag, HttpServletRequest request){
+        int userId = JwtAuthInterceptor.getVerifiedUserId(request);
+        boolean exists = learningService.tag_list(userId).stream()
             .anyMatch(t -> t.getName().equals(tag.getName()));
         if (!exists) {
-            learningService.tag_insert(tag.getName());
+            learningService.tag_insert(tag.getName(), userId);
         }
     }
 
-    // タグの名前変更（タグは全ユーザー共有のため、管理者のみ許可）
+    // タグの名前変更（タグは個人ごとに管理するため、本人が作成したもの以外は編集できない）
     @PostMapping("/tag_update/{id}")
     public ResponseEntity<String> tag_update(@PathVariable("id") int id, @RequestBody tags tag, HttpServletRequest request){
         int userId = JwtAuthInterceptor.getVerifiedUserId(request);
-        if (userId != ADMIN_USER_ID) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("タグの編集は管理者のみ行えます。");
+        int updated = learningService.tag_update(id, tag.getName(), userId);
+        if (updated == 0) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("このタグを編集する権限がありません。");
         }
-        learningService.tag_update(id, tag.getName());
         return ResponseEntity.ok("updated");
     }
 
-    // タグの削除（使用中なら削除させない。管理者のみ許可）
+    // タグの削除（使用中なら削除させない。本人が作成したもの以外は削除できない）
     @PostMapping("/tag_delete/{id}")
     public ResponseEntity<String> tag_delete(@PathVariable("id") int id, HttpServletRequest request){
         int userId = JwtAuthInterceptor.getVerifiedUserId(request);
-        if (userId != ADMIN_USER_ID) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("タグの削除は管理者のみ行えます。");
-        }
-        int usage = learningService.tag_usage_count(id);
+        int usage = learningService.tag_usage_count(id, userId);
         if (usage > 0) {
             return ResponseEntity.status(HttpStatus.CONFLICT)
                 .body("このタグは" + usage + "件の学習記録で使用中のため削除できません。");
         }
-        learningService.tag_delete(id);
+        int deleted = learningService.tag_delete(id, userId);
+        if (deleted == 0) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("このタグを削除する権限がありません。");
+        }
         return ResponseEntity.ok("deleted");
     }
 
-    // タグ一覧取得
+    // タグ一覧取得（本人のものだけ）
     @GetMapping("/tag_list")
-    public List<tags> tag_list(){
-        return learningService.tag_list();
+    public List<tags> tag_list(HttpServletRequest request){
+        int userId = JwtAuthInterceptor.getVerifiedUserId(request);
+        return learningService.tag_list(userId);
     }
 
-    // 学習タグ一覧取得
+    // 学習タグ一覧取得（本人の学習記録に紐づくものだけ）
     @GetMapping("/learning_tag_list")
-    public List<learning_tag> learning_tag(){
-        return learningService.learning_tag();
+    public List<learning_tag> learning_tag(HttpServletRequest request){
+        int userId = JwtAuthInterceptor.getVerifiedUserId(request);
+        return learningService.learning_tag(userId);
     }
 
     // Proプラン「通知を希望する」の登録（同じユーザーが複数回押しても1件のみ記録される）

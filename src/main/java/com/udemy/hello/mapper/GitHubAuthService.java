@@ -34,6 +34,9 @@ public class GitHubAuthService {
     @Autowired
     private JwtService jwtService;
 
+    @Autowired
+    private LearningService learningService;
+
     private final RestTemplate restTemplate = new RestTemplate();
 
     /**
@@ -79,6 +82,9 @@ public class GitHubAuthService {
                 createUserRepoIfNotExist(accessToken, githubLogin);
                 newUser.setCreatedRepo(true);
                 userMapper.update(newUser);
+
+                // --- 初期カテゴリー・タグの用意（一般＋プログラミング関連） ---
+                learningService.seedDefaultCategoriesAndTags(newUser.getId());
 
                 logger.info("✅ 新規ユーザー '{}' を登録し、リポジトリを作成しました。", githubLogin);
 

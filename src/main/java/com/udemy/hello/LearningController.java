@@ -34,6 +34,10 @@ public class LearningController {
     // お問い合わせ管理など、管理者専用の機能でのみ使用する
     private static final int ADMIN_USER_ID = 1;
 
+    // フリープランの登録上限（Proプランとの差別化のための制限。既存の記録は上限を
+    // 超えていても削除されず、新規登録だけがブロックされる）
+    private static final int FREE_PLAN_LIMIT = 100;
+
     private final LearningApplication learningApplication;
 
     @Autowired
@@ -52,9 +56,15 @@ public class LearningController {
 
     // 学習情報の登録（user_idはJWTで検証済みの本人のものを強制的に使う）
     @PostMapping("/learning_insert")
-    public void learning_insert(@RequestBody Learning learning, HttpServletRequest request){
+    public ResponseEntity<String> learning_insert(@RequestBody Learning learning, HttpServletRequest request){
         int userId = JwtAuthInterceptor.getVerifiedUserId(request);
         learning.setUser_id(userId);
+
+        // フリープランの上限チェック（既存の記録は消さず、新規登録だけをブロックする）
+        if (learningService.learning_count(userId) >= FREE_PLAN_LIMIT) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body("フリープランの登録上限（" + FREE_PLAN_LIMIT + "件）に達しています。Proプランのご案内をご確認ください。");
+        }
 
         learningService.learning_insert(learning);
         int learning_id = learningService.learning_one_select(userId);
@@ -74,6 +84,8 @@ public class LearningController {
         for (Integer id : tags_id) {
             learningService.learning_tag_insert(learning_id, id);
         }
+
+        return ResponseEntity.ok("inserted");
     }
 
     // 学習情報の更新（本人が作成した記録以外は更新できない）

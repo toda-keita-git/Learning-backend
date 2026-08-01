@@ -53,6 +53,11 @@ public class LearningService {
         return learningMapper.learning_insert(learning);
     }
 
+    // 無料プランの登録上限チェック用（本人の削除されていない記録数）
+    public int learning_count(int userId) {
+        return learningMapper.learning_count(userId);
+    }
+
     // 最新学習IDを取得（user_id指定）
     public Integer learning_one_select(int user_id) {
         return learningMapper.learning_one_select(user_id);

@@ -61,10 +61,12 @@
     </resultMap>
 
     <!-- ユーザー別の学習一覧取得 -->
+    <!-- LEFT JOIN: category_id が未設定（クイック登録などカテゴリー任意の記録）の
+         場合でも一覧から漏れないようにする。INNER JOINだと該当行ごと消えてしまう -->
     <select id="findAll" resultMap="Learning">
-        SELECT * 
+        SELECT *
         FROM learnings
-        INNER JOIN categories ON categories.id = learnings.category_id
+        LEFT JOIN categories ON categories.id = learnings.category_id
         WHERE learnings.delete_flg = 0
           AND learnings.user_id = #{user_id}
         ORDER BY learnings.id ASC

@@ -58,6 +58,15 @@ public class LearningService {
         return learningMapper.learning_count(userId);
     }
 
+    // 無料プランのカテゴリー・タグ上限チェック用（本人の件数）
+    public int category_count(int userId) {
+        return learningMapper.category_count(userId);
+    }
+
+    public int tag_count(int userId) {
+        return learningMapper.tag_count(userId);
+    }
+
     // 最新学習IDを取得（user_id指定）
     public Integer learning_one_select(int user_id) {
         return learningMapper.learning_one_select(user_id);

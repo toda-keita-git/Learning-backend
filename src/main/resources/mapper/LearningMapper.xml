@@ -109,6 +109,19 @@
         WHERE delete_flg = 0 AND user_id = #{user_id};
     </select>
 
+    <!-- 無料プランのカテゴリー・タグ上限チェック用（本人の件数） -->
+    <select id="category_count" resultType="int">
+        SELECT COUNT(*)
+        FROM categories
+        WHERE user_id = #{user_id};
+    </select>
+
+    <select id="tag_count" resultType="int">
+        SELECT COUNT(*)
+        FROM tags
+        WHERE user_id = #{user_id};
+    </select>
+
     <select id="learning_one_select" resultMap="Learning_i">
         SELECT id
         FROM learnings

@@ -22,6 +22,9 @@ public interface LearningMapper {
 	Integer learning_one_select(int user_id);
 	// 無料プランの登録上限チェック用（本人の削除されていない記録数）
 	int learning_count(@Param("user_id") int user_id);
+	// 無料プランのカテゴリー・タグ上限チェック用（本人の件数）
+	int category_count(@Param("user_id") int user_id);
+	int tag_count(@Param("user_id") int user_id);
 	int learning_insert(Learning learning);
 	// 戻り値は更新件数。id+user_idの両方が一致した場合のみ1件更新される（本人以外の記録は0件のまま）
 	int learning_update(Learning learning);

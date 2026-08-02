@@ -37,6 +37,9 @@ public class LearningController {
     // フリープランの登録上限（Proプランとの差別化のための制限。既存の記録は上限を
     // 超えていても削除されず、新規登録だけがブロックされる）
     private static final int FREE_PLAN_LIMIT = 100;
+    // カテゴリー・タグも同様に新規作成のみを上限でブロックする
+    private static final int FREE_CATEGORY_LIMIT = 20;
+    private static final int FREE_TAG_LIMIT = 50;
 
     private final LearningApplication learningApplication;
 
@@ -69,16 +72,23 @@ public class LearningController {
         learningService.learning_insert(learning);
         int learning_id = learningService.learning_one_select(userId);
 
-        // タグの存在確認と挿入（タグは個人ごとに管理するため、本人のタグの中だけで確認する）
+        // タグの存在確認と挿入（タグは個人ごとに管理するため、本人のタグの中だけで確認する。
+        // フリープランのタグ上限に達している場合、新規タグとしては作らずスキップする
+        // （記録自体の保存は続行し、上限超過分のタグだけが付かない形になる）
         for (String name : learning.getTags()) {
-            if (!learningService.tag_list(userId).stream().anyMatch(tags -> tags.getName().equals(name))) {
+            boolean exists = learningService.tag_list(userId).stream().anyMatch(tags -> tags.getName().equals(name));
+            if (!exists && learningService.tag_count(userId) < FREE_TAG_LIMIT) {
                 learningService.tags_insert(name, userId);
             }
         }
 
+        // 上限超過でスキップされた名前はtags_searchがnullを返すため、紐づけ対象から除外する
         ArrayList<Integer> tags_id = new ArrayList<>();
         for (String name : learning.getTags()) {
-            tags_id.add(learningService.tags_search(name, userId));
+            Integer tagId = learningService.tags_search(name, userId);
+            if (tagId != null) {
+                tags_id.add(tagId);
+            }
         }
 
         for (Integer id : tags_id) {
@@ -101,16 +111,23 @@ public class LearningController {
 
         int learning_id = learning.getId();
 
-        // タグの存在確認と挿入（タグは個人ごとに管理するため、本人のタグの中だけで確認する）
+        // タグの存在確認と挿入（タグは個人ごとに管理するため、本人のタグの中だけで確認する。
+        // フリープランのタグ上限に達している場合、新規タグとしては作らずスキップする
+        // （記録自体の保存は続行し、上限超過分のタグだけが付かない形になる）
         for (String name : learning.getTags()) {
-            if (!learningService.tag_list(userId).stream().anyMatch(tags -> tags.getName().equals(name))) {
+            boolean exists = learningService.tag_list(userId).stream().anyMatch(tags -> tags.getName().equals(name));
+            if (!exists && learningService.tag_count(userId) < FREE_TAG_LIMIT) {
                 learningService.tags_insert(name, userId);
             }
         }
 
+        // 上限超過でスキップされた名前はtags_searchがnullを返すため、紐づけ対象から除外する
         ArrayList<Integer> tags_id = new ArrayList<>();
         for (String name : learning.getTags()) {
-            tags_id.add(learningService.tags_search(name, userId));
+            Integer tagId = learningService.tags_search(name, userId);
+            if (tagId != null) {
+                tags_id.add(tagId);
+            }
         }
 
         // 既存タグを削除して更新
@@ -135,9 +152,15 @@ public class LearningController {
 
     // カテゴリの登録（本人専用のカテゴリーとして登録される）
     @PostMapping("/category_insert")
-    public void category_insert(@RequestBody tags tag, HttpServletRequest request){
+    public ResponseEntity<String> category_insert(@RequestBody tags tag, HttpServletRequest request){
         int userId = JwtAuthInterceptor.getVerifiedUserId(request);
+        // フリープランの上限チェック（既存のカテゴリーは消さず、新規作成だけをブロックする）
+        if (learningService.category_count(userId) >= FREE_CATEGORY_LIMIT) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body("フリープランのカテゴリー上限（" + FREE_CATEGORY_LIMIT + "件）に達しています。Proプランのご案内をご確認ください。");
+        }
         learningService.category_insert(tag.getName(), userId);
+        return ResponseEntity.ok("inserted");
     }
 
     // カテゴリ一覧取得（本人のものだけ）
@@ -176,13 +199,19 @@ public class LearningController {
 
     // タグの登録（本人専用のタグとして登録される。重複時は何もしない）
     @PostMapping("/tag_insert")
-    public void tag_insert(@RequestBody tags tag, HttpServletRequest request){
+    public ResponseEntity<String> tag_insert(@RequestBody tags tag, HttpServletRequest request){
         int userId = JwtAuthInterceptor.getVerifiedUserId(request);
         boolean exists = learningService.tag_list(userId).stream()
             .anyMatch(t -> t.getName().equals(tag.getName()));
         if (!exists) {
+            // フリープランの上限チェック（既存のタグは消さず、新規作成だけをブロックする）
+            if (learningService.tag_count(userId) >= FREE_TAG_LIMIT) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body("フリープランのタグ上限（" + FREE_TAG_LIMIT + "件）に達しています。Proプランのご案内をご確認ください。");
+            }
             learningService.tag_insert(tag.getName(), userId);
         }
+        return ResponseEntity.ok("inserted");
     }
 
     // タグの名前変更（タグは個人ごとに管理するため、本人が作成したもの以外は編集できない）

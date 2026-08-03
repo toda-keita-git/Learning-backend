@@ -82,6 +82,9 @@ public class GitHubAuthService {
                 createUserRepoIfNotExist(accessToken, githubLogin);
                 newUser.setCreatedRepo(true);
                 userMapper.update(newUser);
+                // 作成したリポジトリを、以降の添付先として使うリポジトリに設定する
+                newUser.setRepoName("learning-site-" + githubLogin);
+                userMapper.updateRepoName(newUser.getId(), newUser.getRepoName());
 
                 // --- 初期カテゴリー・タグの用意（一般＋プログラミング関連） ---
                 learningService.seedDefaultCategoriesAndTags(newUser.getId());
@@ -104,10 +107,17 @@ public class GitHubAuthService {
                     userMapper.update(existingUser);
                     logger.info("✅ ユーザー '{}' のリポジトリを新規作成しました。", githubLogin);
                 }
+                // repo_name が未設定（このカラムが追加される前からのユーザー）なら、
+                // これまで使っていた既定のリポジトリ名で埋めておく
+                if (existingUser.getRepoName() == null || existingUser.getRepoName().isBlank()) {
+                    existingUser.setRepoName("learning-site-" + githubLogin);
+                    userMapper.updateRepoName(existingUser.getId(), existingUser.getRepoName());
+                }
             }
 
             // ====== ④ レスポンス返却 ======
             int userId = existingUser != null ? existingUser.getId() : newUser.getId();
+            String repoName = existingUser != null ? existingUser.getRepoName() : newUser.getRepoName();
 
             Map<String, Object> result = new HashMap<>();
             result.put("access_token", accessToken);
@@ -115,6 +125,7 @@ public class GitHubAuthService {
             result.put("email", email);
             result.put("avatar_url", avatarUrl);
             result.put("user_id", userId);
+            result.put("repo_name", repoName);
             // 以降のAPI呼び出しの本人確認に使う、こちらが署名したトークン。
             // access_tokenはGitHub API呼び出し専用として使い続け、
             // このアプリのAPIに対する本人確認にはapp_tokenを使う
@@ -126,6 +137,20 @@ public class GitHubAuthService {
             logger.error("GitHub認証処理に失敗しました: {}", e.getMessage(), e);
             throw new RuntimeException("GitHub認証処理に失敗しました: " + e.getMessage());
         }
+    }
+
+    /**
+     * 学習記録の添付先として使うリポジトリを、本人の既存リポジトリに切り替える。
+     * 新規作成は行わない（自動作成される既定のリポジトリとは別に、本人がGitHub上に
+     * 既に持っているリポジトリを選ぶための機能）。
+     */
+    public String updateUserRepo(String githubLogin, String repoName) {
+        User user = userMapper.findByGithubLogin(githubLogin);
+        if (user == null) {
+            throw new RuntimeException("ユーザーが見つかりません。");
+        }
+        userMapper.updateRepoName(user.getId(), repoName);
+        return repoName;
     }
 
     /**

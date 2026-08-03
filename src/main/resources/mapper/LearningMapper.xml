@@ -15,6 +15,7 @@
         <result property="category_name" column="name" />
         <result property="github_path" column="github_path" />
         <result property="commit_sha" column="commit_sha" />
+        <result property="repo_name" column="repo_name" />
         <result property="delete_flg" column="delete_flg" />
         <result property="user_id" column="user_id" />
     </resultMap>
@@ -99,9 +100,9 @@
     <!-- 学習データ挿入にuser_idを追加 -->
     <insert id="learning_insert">
     	INSERT INTO learnings
-        (title, heading_text, explanatory_text, understanding_level, reference_url, created_at, category_id, github_path, commit_sha, user_id)
+        (title, heading_text, explanatory_text, understanding_level, reference_url, created_at, category_id, github_path, commit_sha, repo_name, user_id)
         VALUES
-        (#{title}, #{heading_text}, #{explanatory_text}, #{understanding_level}, #{reference_url}, #{created_at}, #{category_id}, #{github_path}, #{commit_sha}, #{user_id});
+        (#{title}, #{heading_text}, #{explanatory_text}, #{understanding_level}, #{reference_url}, #{created_at}, #{category_id}, #{github_path}, #{commit_sha}, #{repo_name}, #{user_id});
     </insert>
     
     <!-- 無料プランの登録上限チェック用（本人の削除されていない記録数） -->
@@ -171,6 +172,7 @@
             category_id = #{category_id},
             github_path = #{github_path},
             commit_sha = #{commit_sha},
+            repo_name = #{repo_name},
             user_id = #{user_id}
         WHERE id = #{id} AND user_id = #{user_id};
     </update>

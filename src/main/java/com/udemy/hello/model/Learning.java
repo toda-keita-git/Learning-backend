@@ -25,5 +25,8 @@ public class Learning {
 	private String[] tags;
 	private String github_path;
 	private String commit_sha;
+	// 添付ファイルがどのリポジトリのものかを記録する。ユーザーが後で使用リポジトリを
+	// 切り替えても、過去の記録の添付リンクが指すリポジトリがわかるようにするため
+	private String repo_name;
 	private Integer user_id;
 }

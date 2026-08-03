@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.CrossOrigin;
 
 import com.udemy.hello.mapper.LearningService;
+import com.udemy.hello.mapper.GitHubAuthService;
 import com.udemy.hello.model.Learning;
 import com.udemy.hello.model.categories;
 import com.udemy.hello.model.tags;
@@ -45,6 +46,9 @@ public class LearningController {
 
     @Autowired
     LearningService learningService;
+
+    @Autowired
+    GitHubAuthService gitHubAuthService;
 
     LearningController(LearningApplication learningApplication) {
         this.learningApplication = learningApplication;
@@ -148,6 +152,19 @@ public class LearningController {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body("この学習記録を削除する権限がありません。");
         }
         return ResponseEntity.ok("deleted");
+    }
+
+    // 学習記録の添付先として使うリポジトリを、本人の既存リポジトリに切り替える
+    // （新規作成は行わない。githubLoginはJWTで検証済みのものを使う）
+    @PostMapping("/user_repo_select")
+    public ResponseEntity<?> userRepoSelect(@RequestBody Map<String, String> body, HttpServletRequest request) {
+        String githubLogin = JwtAuthInterceptor.getVerifiedGithubLogin(request);
+        String repoName = body.get("repo_name");
+        if (repoName == null || repoName.isBlank()) {
+            return ResponseEntity.badRequest().body("リポジトリ名を指定してください。");
+        }
+        String updated = gitHubAuthService.updateUserRepo(githubLogin, repoName.trim());
+        return ResponseEntity.ok(Map.of("repo_name", updated));
     }
 
     // カテゴリの登録（本人専用のカテゴリーとして登録される）

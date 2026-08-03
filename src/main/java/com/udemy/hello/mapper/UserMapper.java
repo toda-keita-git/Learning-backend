@@ -21,4 +21,7 @@ public interface UserMapper {
         user.setCreatedRepo(createdRepo); // UserクラスにsetCreatedRepoが必要
         update(user);
     }
+
+    // 使用するリポジトリ名を更新（新規作成直後の初期設定、または既存リポジトリへの切り替えの両方で使う）
+    void updateRepoName(@Param("id") int id, @Param("repoName") String repoName);
 }

@@ -14,6 +14,7 @@ public class User {
     private Boolean deleteFlg;        // 論理削除フラグ（true:削除）
     private String githubLogin;
     private boolean createdRepo;
+    private String repoName;          // 学習記録の添付先として使うGitHubリポジトリ名
 
     // --- Getter / Setter ---
     public Integer getId() {
@@ -93,6 +94,14 @@ public class User {
     }
     public void setCreatedRepo(boolean createdRepo) {
         this.createdRepo = createdRepo;
+    }
+
+    // repoName の getter/setter
+    public String getRepoName() {
+        return repoName;
+    }
+    public void setRepoName(String repoName) {
+        this.repoName = repoName;
     }
 
     // --- toString() ---

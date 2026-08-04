@@ -18,6 +18,7 @@ public interface LearningMapper {
 	int category_count(@Param("user_id") int user_id);
 	int tag_count(@Param("user_id") int user_id);
 	void tags_insert(@Param("name") String name, @Param("user_id") int user_id);
+	Integer tags_search(@Param("name") String name, @Param("user_id") int user_id);
 	void category_insert(@Param("name") String name, @Param("user_id") int user_id);
 	// カテゴリーの編集・削除・使用状況（戻り値は更新・削除件数。本人が作成したもの以外は0件のまま）
 	int category_update(@Param("id") int id, @Param("name") String name, @Param("user_id") int user_id);

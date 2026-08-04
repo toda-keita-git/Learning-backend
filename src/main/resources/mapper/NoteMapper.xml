@@ -28,6 +28,11 @@
         <result property="sort_order" column="sort_order" />
     </resultMap>
 
+    <resultMap id="NoteTagName" type="NoteTagName">
+        <result property="note_id" column="note_id" />
+        <result property="name" column="name" />
+    </resultMap>
+
     <!-- ユーザー別の全メモ取得。アクションプラン別・種別別の絞り込みはフロント側で行う（learningsと同じ流儀） -->
     <select id="findAll" resultMap="Note">
         SELECT *
@@ -43,6 +48,13 @@
         VALUES
         (#{action_plan_id}, #{type}, #{title}, #{body}, #{mastery}, #{progress}, #{category_id}, #{github_path}, #{commit_sha}, #{repo_name}, #{created_at}, #{user_id});
     </insert>
+
+    <!-- 無料プランの登録上限チェック用（本人の削除されていないメモ数） -->
+    <select id="count" resultType="int">
+        SELECT COUNT(*)
+        FROM notes
+        WHERE delete_flg = 0 AND user_id = #{user_id};
+    </select>
 
     <!-- WHERE に user_id も含めることで、本人が作成したメモ以外は更新されない（0件のまま） -->
     <update id="update">
@@ -110,5 +122,28 @@
         WHERE id = #{id}
           AND note_id IN (SELECT id FROM notes WHERE user_id = #{user_id});
     </update>
+
+    <!-- 本人の全メモに紐づくタグ名。note_idでグルーピングしてNote.tagsに詰め直す -->
+    <select id="findTagNamesByUser" resultMap="NoteTagName">
+        SELECT note_tags.note_id, tags.name
+        FROM note_tags
+        INNER JOIN tags ON tags.id = note_tags.tag_id
+        INNER JOIN notes ON notes.id = note_tags.note_id
+        WHERE notes.user_id = #{user_id}
+          AND notes.delete_flg = 0
+        ORDER BY note_tags.note_id ASC;
+    </select>
+
+    <insert id="insertNoteTag">
+        INSERT INTO note_tags
+        (note_id, tag_id)
+        VALUES
+        (#{note_id}, #{tag_id});
+    </insert>
+
+    <delete id="deleteNoteTagsByNote">
+        DELETE FROM note_tags
+        WHERE note_id = #{note_id};
+    </delete>
 
 </mapper>

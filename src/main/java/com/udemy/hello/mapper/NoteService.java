@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import com.udemy.hello.model.Note;
+import com.udemy.hello.model.NoteTagName;
 import com.udemy.hello.model.NoteTodoItem;
 
 @Service
@@ -16,33 +17,51 @@ public class NoteService {
 	@Autowired
 	private NoteMapper noteMapper;
 
-	// ユーザー別の全メモを取得し、todo項目の組み立てと実効進捗の算出まで行った状態で返す
+	// タグはcategories/tagsと同じくユーザー単位の共有リソースのため、既存のタグ管理をそのまま使う
+	@Autowired
+	private LearningService learningService;
+
+	// ユーザー別の全メモを取得し、todo項目・タグの組み立てと実効進捗の算出まで行った状態で返す
 	public List<Note> findAllForUser(int userId) {
 		List<Note> notes = noteMapper.findAll(userId);
 		List<NoteTodoItem> todoItems = noteMapper.findTodoItemsByUser(userId);
-		Map<Integer, List<NoteTodoItem>> byNote = todoItems.stream()
+		List<NoteTagName> tagNames = noteMapper.findTagNamesByUser(userId);
+
+		Map<Integer, List<NoteTodoItem>> todosByNote = todoItems.stream()
 				.collect(Collectors.groupingBy(NoteTodoItem::getNote_id));
+		Map<Integer, List<String>> tagsByNote = tagNames.stream()
+				.collect(Collectors.groupingBy(NoteTagName::getNote_id,
+						Collectors.mapping(NoteTagName::getName, Collectors.toList())));
 
 		for (Note note : notes) {
-			note.setTodo_items(byNote.getOrDefault(note.getId(), List.of()));
+			note.setTodo_items(todosByNote.getOrDefault(note.getId(), List.of()));
+			note.setTags(tagsByNote.getOrDefault(note.getId(), List.of()).toArray(new String[0]));
 			note.setEffective_progress(ProgressCalculator.effectiveProgress(note));
 		}
 		return notes;
 	}
 
-	public int insert(Note note, List<NoteTodoItem> todoItems) {
+	// 無料プランの登録上限チェック用（本人の削除されていないメモ数）
+	public int count(int userId) {
+		return noteMapper.count(userId);
+	}
+
+	public int insert(Note note, List<NoteTodoItem> todoItems, String[] tagNames) {
 		int result = noteMapper.insert(note);
 		insertTodoItems(note.getId(), todoItems);
+		insertTags(note.getId(), tagNames, note.getUser_id());
 		return result;
 	}
 
-	// 戻り値は更新件数。本人が作成したメモ以外は0のまま（todoの入れ替えも行われない）
-	public int update(Note note, List<NoteTodoItem> todoItems) {
+	// 戻り値は更新件数。本人が作成したメモ以外は0のまま（todo・タグの入れ替えも行われない）
+	public int update(Note note, List<NoteTodoItem> todoItems, String[] tagNames) {
 		int updated = noteMapper.update(note);
 		if (updated > 0) {
-			// タグ更新と同じ流儀：既存todoを全削除してから入れ直す
+			// タグ更新と同じ流儀：既存todo・タグを全削除してから入れ直す
 			noteMapper.deleteTodoItemsByNote(note.getId());
 			insertTodoItems(note.getId(), todoItems);
+			noteMapper.deleteNoteTagsByNote(note.getId());
+			insertTags(note.getId(), tagNames, note.getUser_id());
 		}
 		return updated;
 	}
@@ -56,6 +75,26 @@ public class NoteService {
 			item.setNote_id(noteId);
 			item.setSort_order(order++);
 			noteMapper.insertTodoItem(item);
+		}
+	}
+
+	// タグの存在確認と挿入は、フリープランのタグ上限に達している場合は新規タグ作成をスキップする
+	// （メモ自体の保存は続行し、上限超過分のタグだけが付かない形になる。learning_insertと同じ方針）
+	private void insertTags(int noteId, String[] tagNames, int userId) {
+		if (tagNames == null) {
+			return;
+		}
+		for (String name : tagNames) {
+			boolean exists = learningService.tag_list(userId).stream().anyMatch(t -> t.getName().equals(name));
+			if (!exists && learningService.tag_count(userId) < LearningService.FREE_TAG_LIMIT) {
+				learningService.tags_insert(name, userId);
+			}
+		}
+		for (String name : tagNames) {
+			Integer tagId = learningService.tags_search(name, userId);
+			if (tagId != null) {
+				noteMapper.insertNoteTag(noteId, tagId);
+			}
 		}
 	}
 

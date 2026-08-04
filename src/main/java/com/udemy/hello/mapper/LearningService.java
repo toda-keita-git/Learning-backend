@@ -17,6 +17,10 @@ import com.udemy.hello.model.Inquiry;
 @Service
 public class LearningService {
 
+    // フリープランのタグ上限（カテゴリー・メモの上限はLearningController/NoteControllerでそれぞれ判定）。
+    // タグはカテゴリー同様に個人ごとの共有リソースのため、この定数はNoteServiceからも参照する
+    public static final int FREE_TAG_LIMIT = 50;
+
     // 新規ユーザー登録時に自動で用意するカテゴリー・タグの初期セット（一般＋プログラミング関連）
     private static final List<String> DEFAULT_CATEGORIES = List.of(
         "仕事", "学業", "資格・検定", "語学", "趣味", "健康・生活",
@@ -52,6 +56,11 @@ public class LearningService {
 
     public void tags_insert(String name, int userId) {
         learningMapper.tags_insert(name, userId);
+    }
+
+    // 名前からタグIDを引く（本人のタグの中だけで検索）。ノートのタグ付け時に使う
+    public Integer tags_search(String name, int userId) {
+        return learningMapper.tags_search(name, userId);
     }
 
     public void category_insert(String name, int userId) {

@@ -39,7 +39,6 @@ public class LearningController {
 
     // フリープランの上限（Proプランとの差別化のための制限。既存のカテゴリー・タグは削除されず、新規作成だけがブロックされる）
     private static final int FREE_CATEGORY_LIMIT = 20;
-    private static final int FREE_TAG_LIMIT = 50;
 
     private final LearningApplication learningApplication;
 
@@ -121,9 +120,9 @@ public class LearningController {
             .anyMatch(t -> t.getName().equals(tag.getName()));
         if (!exists) {
             // フリープランの上限チェック（既存のタグは消さず、新規作成だけをブロックする）
-            if (learningService.tag_count(userId) >= FREE_TAG_LIMIT) {
+            if (learningService.tag_count(userId) >= LearningService.FREE_TAG_LIMIT) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body("フリープランのタグ上限（" + FREE_TAG_LIMIT + "件）に達しています。Proプランのご案内をご確認ください。");
+                    .body("フリープランのタグ上限（" + LearningService.FREE_TAG_LIMIT + "件）に達しています。Proプランのご案内をご確認ください。");
             }
             learningService.tag_insert(tag.getName(), userId);
         }

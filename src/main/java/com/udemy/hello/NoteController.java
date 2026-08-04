@@ -27,6 +27,9 @@ public class NoteController {
 
 	private static final Set<String> VALID_TYPES = Set.of("learning", "task", "normal");
 
+	// フリープランの登録上限（旧learningsと同じ100件。既存のメモは削除されず、新規登録だけがブロックされる）
+	private static final int FREE_PLAN_LIMIT = 100;
+
 	@Autowired
 	NoteService noteService;
 
@@ -43,9 +46,13 @@ public class NoteController {
 			return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("メモの種別が不正です。");
 		}
 		int userId = JwtAuthInterceptor.getVerifiedUserId(request);
+		if (noteService.count(userId) >= FREE_PLAN_LIMIT) {
+			return ResponseEntity.status(HttpStatus.FORBIDDEN)
+				.body("フリープランの登録上限（" + FREE_PLAN_LIMIT + "件）に達しています。Proプランのご案内をご確認ください。");
+		}
 		note.setUser_id(userId);
 		note.setCreated_at(new Timestamp(System.currentTimeMillis()));
-		noteService.insert(note, note.getTodo_items());
+		noteService.insert(note, note.getTodo_items(), note.getTags());
 		return ResponseEntity.ok("inserted");
 	}
 
@@ -57,7 +64,7 @@ public class NoteController {
 		int userId = JwtAuthInterceptor.getVerifiedUserId(request);
 		note.setId(id);
 		note.setUser_id(userId);
-		int updated = noteService.update(note, note.getTodo_items());
+		int updated = noteService.update(note, note.getTodo_items(), note.getTags());
 		if (updated == 0) {
 			return ResponseEntity.status(HttpStatus.FORBIDDEN).body("このメモを編集する権限がありません。");
 		}

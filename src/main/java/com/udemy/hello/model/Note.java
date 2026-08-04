@@ -26,6 +26,8 @@ public class Note {
 	private Timestamp created_at;
 	private int delete_flg;
 	private Integer user_id;
+	// note_tags経由の多対多。DB列ではなく、NoteServiceが組み立てて詰める値
+	private String[] tags;
 
 	// DB列ではなく、NoteServiceが紐づくnote_todo_itemsから組み立てて詰める値
 	private List<NoteTodoItem> todo_items;

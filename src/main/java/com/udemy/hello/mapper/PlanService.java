@@ -1,9 +1,9 @@
 package com.udemy.hello.mapper;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -35,8 +35,12 @@ public class PlanService {
 				return false; // 自分自身の子にはできない
 			}
 			List<Plan> all = planMapper.findAll(userId);
-			Map<Integer, Integer> parentById = all.stream()
-					.collect(Collectors.toMap(Plan::getId, Plan::getParent_id, (a, b) -> a));
+			// Collectors.toMapはMap.mergeを介するため、値（parent_id）がnull＝ルート直下の
+			// プランが1件でもあるとNullPointerExceptionになる。HashMapへ手動でputして回避する
+			Map<Integer, Integer> parentById = new HashMap<>();
+			for (Plan p : all) {
+				parentById.put(p.getId(), p.getParent_id());
+			}
 			Integer cursor = newParentId;
 			while (cursor != null) {
 				if (Objects.equals(cursor, id)) {

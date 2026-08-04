@@ -62,11 +62,19 @@ CREATE INDEX IF NOT EXISTS idx_note_tags_note_id ON note_tags(note_id);
 
 -- 移行（仕様書「移行計画」章）：既存の learnings を学習用メモとして未紐付けで移す。
 -- learnings / learning_tags は削除せず残し、検証後に別途廃止する。
-INSERT INTO notes (user_id, action_plan_id, type, title, body, mastery, category_id, github_path, commit_sha, repo_name, created_at, delete_flg)
-SELECT user_id, NULL, 'learning', title, explanatory_text, understanding_level, category_id, github_path, commit_sha, repo_name, created_at, delete_flg
+--
+-- note.id は SERIAL の自動採番に任せず、元の learning.id をそのまま引き継ぐ。
+-- こうすることで、直後の note_tags 移行を learning_id = note_id の対応だけで
+-- 機械的に行える（対応表を別途作る必要がない）。
+INSERT INTO notes (id, user_id, action_plan_id, type, title, body, mastery, category_id, github_path, commit_sha, repo_name, created_at, delete_flg)
+SELECT id, user_id, NULL, 'learning', title, explanatory_text, understanding_level, category_id, github_path, commit_sha, repo_name, created_at, delete_flg
 FROM learnings;
 
--- 注意: 上記の学習用メモへの移行はSERIALで新しいidを振り直すため、
--- 旧learning_tagsの行を新しいnote_tagsへ機械的に対応付けることはできない
--- （learning.id → note.id の対応表が無いため）。タグ付けは移行後、
--- 手動で付け直すか、対応表を別途作ってから移行する。
+-- 明示的にidを指定して挿入したため、notesのSERIALシーケンスは追従していない。
+-- 以降にAPI経由で作成されるメモが既存idと衝突しないよう、続きの番号から
+-- 採番されるように調整する
+SELECT setval('notes_id_seq', COALESCE((SELECT MAX(id) FROM notes), 1));
+
+-- 学習記録のタグ付けを、note.id = 元のlearning.id の対応でそのままnote_tagsへ引き継ぐ
+INSERT INTO note_tags (note_id, tag_id)
+SELECT learning_id, tag_id FROM learning_tags;

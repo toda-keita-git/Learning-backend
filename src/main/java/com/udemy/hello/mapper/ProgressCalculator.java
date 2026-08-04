@@ -7,7 +7,7 @@ import com.udemy.hello.model.Note;
 import com.udemy.hello.model.NoteTodoItem;
 
 /**
- * メモ→アクションプラン→目標 の3段階の進捗集計ロジック（仕様書「進捗集計ロジック」章に対応）。
+ * メモ→プラン（再帰）の進捗集計ロジック（仕様書「進捗集計ロジック」章に対応）。
  * 未算出（対象が0件、または全てnull）は0%と区別するため、常にnullを返す。
  */
 public final class ProgressCalculator {
@@ -29,14 +29,6 @@ public final class ProgressCalculator {
 			return note.getProgress();
 		}
 		return null;
-	}
-
-	public static Double averageOfInts(List<Integer> values) {
-		List<Integer> nonNull = values.stream().filter(Objects::nonNull).toList();
-		if (nonNull.isEmpty()) {
-			return null;
-		}
-		return nonNull.stream().mapToInt(Integer::intValue).average().getAsDouble();
 	}
 
 	public static Double averageOfDoubles(List<Double> values) {

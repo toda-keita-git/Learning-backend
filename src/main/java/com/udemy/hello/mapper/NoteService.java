@@ -8,6 +8,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import com.udemy.hello.model.Note;
+import com.udemy.hello.model.NoteAttachment;
+import com.udemy.hello.model.NotePlanLink;
 import com.udemy.hello.model.NoteTagName;
 import com.udemy.hello.model.NoteTodoItem;
 
@@ -21,21 +23,30 @@ public class NoteService {
 	@Autowired
 	private LearningService learningService;
 
-	// ユーザー別の全メモを取得し、todo項目・タグの組み立てと実効進捗の算出まで行った状態で返す
+	// ユーザー別の全メモを取得し、todo項目・タグ・リンク・添付の組み立てと実効進捗の算出まで行った状態で返す
 	public List<Note> findAllForUser(int userId) {
 		List<Note> notes = noteMapper.findAll(userId);
 		List<NoteTodoItem> todoItems = noteMapper.findTodoItemsByUser(userId);
 		List<NoteTagName> tagNames = noteMapper.findTagNamesByUser(userId);
+		List<NotePlanLink> links = noteMapper.findLinksByUser(userId);
+		List<NoteAttachment> attachments = noteMapper.findAttachmentsByUser(userId);
 
 		Map<Integer, List<NoteTodoItem>> todosByNote = todoItems.stream()
 				.collect(Collectors.groupingBy(NoteTodoItem::getNote_id));
 		Map<Integer, List<String>> tagsByNote = tagNames.stream()
 				.collect(Collectors.groupingBy(NoteTagName::getNote_id,
 						Collectors.mapping(NoteTagName::getName, Collectors.toList())));
+		Map<Integer, List<Integer>> linksByNote = links.stream()
+				.collect(Collectors.groupingBy(NotePlanLink::getNote_id,
+						Collectors.mapping(NotePlanLink::getPlan_id, Collectors.toList())));
+		Map<Integer, List<NoteAttachment>> attachmentsByNote = attachments.stream()
+				.collect(Collectors.groupingBy(NoteAttachment::getNote_id));
 
 		for (Note note : notes) {
 			note.setTodo_items(todosByNote.getOrDefault(note.getId(), List.of()));
 			note.setTags(tagsByNote.getOrDefault(note.getId(), List.of()).toArray(new String[0]));
+			note.setLinks(linksByNote.getOrDefault(note.getId(), List.of()));
+			note.setAttachments(attachmentsByNote.getOrDefault(note.getId(), List.of()));
 			note.setEffective_progress(ProgressCalculator.effectiveProgress(note));
 		}
 		return notes;
@@ -46,14 +57,27 @@ public class NoteService {
 		return noteMapper.count(userId);
 	}
 
+	// 作成時に渡された初期リンク・初期添付があれば、そのまま張っておく（都度2回に分けて呼ばなくて済むように）
 	public int insert(Note note, List<NoteTodoItem> todoItems, String[] tagNames) {
 		int result = noteMapper.insert(note);
 		insertTodoItems(note.getId(), todoItems);
 		insertTags(note.getId(), tagNames, note.getUser_id());
+		if (note.getLinks() != null) {
+			for (Integer planId : note.getLinks()) {
+				noteMapper.insertLink(note.getId(), planId, note.getUser_id());
+			}
+		}
+		if (note.getAttachments() != null) {
+			for (NoteAttachment attachment : note.getAttachments()) {
+				attachment.setNote_id(note.getId());
+				noteMapper.insertAttachment(attachment, note.getUser_id());
+			}
+		}
 		return result;
 	}
 
-	// 戻り値は更新件数。本人が作成したメモ以外は0のまま（todo・タグの入れ替えも行われない）
+	// 戻り値は更新件数。本人が作成したメモ以外は0のまま（todo・タグの入れ替えも行われない）。
+	// リンク・添付は専用のエンドポイント（attach/detach/attachment系）で管理するため、ここでは触らない
 	public int update(Note note, List<NoteTodoItem> todoItems, String[] tagNames) {
 		int updated = noteMapper.update(note);
 		if (updated > 0) {
@@ -102,11 +126,24 @@ public class NoteService {
 		return noteMapper.delete(id, userId);
 	}
 
-	public int attach(int id, int userId, int actionPlanId) {
-		return noteMapper.attach(id, userId, actionPlanId);
-	}
-
 	public int toggleTodo(int todoItemId, boolean checked, int userId) {
 		return noteMapper.updateTodoItemChecked(todoItemId, checked, userId);
+	}
+
+	// メモをプランへリンク（ドラッグ／タップどちらの操作からも同じAPIを呼ぶ）
+	public int link(int noteId, int planId, int userId) {
+		return noteMapper.insertLink(noteId, planId, userId);
+	}
+
+	public int unlink(int noteId, int planId, int userId) {
+		return noteMapper.deleteLink(noteId, planId, userId);
+	}
+
+	public int addAttachment(NoteAttachment attachment, int userId) {
+		return noteMapper.insertAttachment(attachment, userId);
+	}
+
+	public int deleteAttachment(int attachmentId, int userId) {
+		return noteMapper.deleteAttachment(attachmentId, userId);
 	}
 }

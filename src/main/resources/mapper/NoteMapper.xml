@@ -5,16 +5,12 @@
 
     <resultMap id="Note" type="Note">
         <id property="id" column="id" />
-        <result property="action_plan_id" column="action_plan_id" />
         <result property="type" column="type" />
         <result property="title" column="title" />
         <result property="body" column="body" />
         <result property="mastery" column="mastery" />
         <result property="progress" column="progress" />
         <result property="category_id" column="category_id" />
-        <result property="github_path" column="github_path" />
-        <result property="commit_sha" column="commit_sha" />
-        <result property="repo_name" column="repo_name" />
         <result property="created_at" column="created_at" />
         <result property="delete_flg" column="delete_flg" />
         <result property="user_id" column="user_id" />
@@ -33,7 +29,22 @@
         <result property="name" column="name" />
     </resultMap>
 
-    <!-- ユーザー別の全メモ取得。アクションプラン別・種別別の絞り込みはフロント側で行う（learningsと同じ流儀） -->
+    <resultMap id="NotePlanLink" type="NotePlanLink">
+        <result property="note_id" column="note_id" />
+        <result property="plan_id" column="plan_id" />
+    </resultMap>
+
+    <resultMap id="NoteAttachment" type="NoteAttachment">
+        <id property="id" column="id" />
+        <result property="note_id" column="note_id" />
+        <result property="kind" column="kind" />
+        <result property="github_path" column="github_path" />
+        <result property="commit_sha" column="commit_sha" />
+        <result property="repo_name" column="repo_name" />
+        <result property="sort_order" column="sort_order" />
+    </resultMap>
+
+    <!-- ユーザー別の全メモ取得。プラン別・種別別の絞り込みはフロント側で行う（learningsと同じ流儀） -->
     <select id="findAll" resultMap="Note">
         SELECT *
         FROM notes
@@ -44,9 +55,9 @@
 
     <insert id="insert" useGeneratedKeys="true" keyProperty="id">
         INSERT INTO notes
-        (action_plan_id, type, title, body, mastery, progress, category_id, github_path, commit_sha, repo_name, created_at, user_id)
+        (type, title, body, mastery, progress, category_id, created_at, user_id)
         VALUES
-        (#{action_plan_id}, #{type}, #{title}, #{body}, #{mastery}, #{progress}, #{category_id}, #{github_path}, #{commit_sha}, #{repo_name}, #{created_at}, #{user_id});
+        (#{type}, #{title}, #{body}, #{mastery}, #{progress}, #{category_id}, #{created_at}, #{user_id});
     </insert>
 
     <!-- 無料プランの登録上限チェック用（本人の削除されていないメモ数） -->
@@ -59,16 +70,12 @@
     <!-- WHERE に user_id も含めることで、本人が作成したメモ以外は更新されない（0件のまま） -->
     <update id="update">
         UPDATE notes
-        SET action_plan_id = #{action_plan_id},
-            type = #{type},
+        SET type = #{type},
             title = #{title},
             body = #{body},
             mastery = #{mastery},
             progress = #{progress},
-            category_id = #{category_id},
-            github_path = #{github_path},
-            commit_sha = #{commit_sha},
-            repo_name = #{repo_name}
+            category_id = #{category_id}
         WHERE id = #{id} AND user_id = #{user_id};
     </update>
 
@@ -77,20 +84,6 @@
         UPDATE notes
         SET delete_flg = 1
         WHERE id = #{id} AND user_id = #{user_id};
-    </update>
-
-    <!-- 未紐付けメモを後からアクションプランに紐付ける -->
-    <update id="attach">
-        UPDATE notes
-        SET action_plan_id = #{action_plan_id}
-        WHERE id = #{id} AND user_id = #{user_id};
-    </update>
-
-    <!-- アクションプラン削除時、紐づくメモをtodo等は残したまま未紐付けに戻す -->
-    <update id="detachByActionPlan">
-        UPDATE notes
-        SET action_plan_id = NULL
-        WHERE action_plan_id = #{action_plan_id};
     </update>
 
     <!-- 本人の全メモに紐づくtodo項目。Note組み立て時にnote_idでグルーピングする -->
@@ -144,6 +137,55 @@
     <delete id="deleteNoteTagsByNote">
         DELETE FROM note_tags
         WHERE note_id = #{note_id};
+    </delete>
+
+    <!-- 本人の削除されていないメモ×削除されていないプランのリンクだけを返す -->
+    <select id="findLinksByUser" resultMap="NotePlanLink">
+        SELECT note_plan_links.note_id, note_plan_links.plan_id
+        FROM note_plan_links
+        INNER JOIN notes ON notes.id = note_plan_links.note_id
+        INNER JOIN plans ON plans.id = note_plan_links.plan_id
+        WHERE notes.user_id = #{user_id}
+          AND notes.delete_flg = 0
+          AND plans.delete_flg = 0
+        ORDER BY note_plan_links.note_id ASC;
+    </select>
+
+    <!-- 本人のメモにだけリンクを追加できる（他人のメモへは0件のまま）。同じ組み合わせの重複は無視 -->
+    <insert id="insertLink">
+        INSERT INTO note_plan_links (note_id, plan_id)
+        SELECT #{note_id}, #{plan_id}
+        WHERE EXISTS (SELECT 1 FROM notes WHERE id = #{note_id} AND user_id = #{user_id})
+        ON CONFLICT (note_id, plan_id) DO NOTHING;
+    </insert>
+
+    <delete id="deleteLink">
+        DELETE FROM note_plan_links
+        WHERE note_id = #{note_id} AND plan_id = #{plan_id}
+          AND note_id IN (SELECT id FROM notes WHERE user_id = #{user_id});
+    </delete>
+
+    <!-- 本人の削除されていないメモに紐づく添付だけを返す -->
+    <select id="findAttachmentsByUser" resultMap="NoteAttachment">
+        SELECT note_attachments.*
+        FROM note_attachments
+        INNER JOIN notes ON notes.id = note_attachments.note_id
+        WHERE notes.user_id = #{user_id}
+          AND notes.delete_flg = 0
+        ORDER BY note_attachments.note_id ASC, note_attachments.sort_order ASC;
+    </select>
+
+    <!-- 本人のメモにだけ添付を追加できる（他人のメモへは0件のまま） -->
+    <insert id="insertAttachment" useGeneratedKeys="true" keyProperty="attachment.id">
+        INSERT INTO note_attachments (note_id, kind, github_path, commit_sha, repo_name, sort_order)
+        SELECT #{attachment.note_id}, #{attachment.kind}, #{attachment.github_path}, #{attachment.commit_sha}, #{attachment.repo_name}, #{attachment.sort_order}
+        WHERE EXISTS (SELECT 1 FROM notes WHERE id = #{attachment.note_id} AND user_id = #{user_id});
+    </insert>
+
+    <delete id="deleteAttachment">
+        DELETE FROM note_attachments
+        WHERE id = #{id}
+          AND note_id IN (SELECT id FROM notes WHERE user_id = #{user_id});
     </delete>
 
 </mapper>

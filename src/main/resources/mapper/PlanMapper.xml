@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.udemy.hello.mapper.PlanMapper">
+
+    <resultMap id="Plan" type="Plan">
+        <id property="id" column="id" />
+        <result property="parent_id" column="parent_id" />
+        <result property="title" column="title" />
+        <result property="description" column="description" />
+        <result property="status" column="status" />
+        <result property="sort_order" column="sort_order" />
+        <result property="created_at" column="created_at" />
+        <result property="delete_flg" column="delete_flg" />
+        <result property="user_id" column="user_id" />
+    </resultMap>
+
+    <!-- ユーザー別の全プラン取得。親子構造の組み立てはフロント側で行う（learningsと同じ流儀） -->
+    <select id="findAll" resultMap="Plan">
+        SELECT *
+        FROM plans
+        WHERE delete_flg = 0
+          AND user_id = #{user_id}
+        ORDER BY parent_id ASC NULLS FIRST, sort_order ASC;
+    </select>
+
+    <select id="nextSortOrder" resultType="int">
+        SELECT COALESCE(MAX(sort_order), -1) + 1
+        FROM plans
+        WHERE user_id = #{user_id}
+          AND delete_flg = 0
+          <if test="parent_id != null">AND parent_id = #{parent_id}</if>
+          <if test="parent_id == null">AND parent_id IS NULL</if>
+        ;
+    </select>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO plans
+        (parent_id, title, description, status, sort_order, created_at, user_id)
+        VALUES
+        (#{parent_id}, #{title}, #{description}, #{status}, #{sort_order}, #{created_at}, #{user_id});
+    </insert>
+
+    <!-- WHERE に user_id も含めることで、本人が作成したプラン以外は更新されない（0件のまま） -->
+    <update id="update">
+        UPDATE plans
+        SET title = #{title},
+            description = #{description},
+            status = #{status}
+        WHERE id = #{id} AND user_id = #{user_id};
+    </update>
+
+    <!-- 親の変更（再配置）。ドラッグ確定後・タップでの移動どちらからもこれを呼ぶ -->
+    <update id="updateParent">
+        UPDATE plans
+        SET parent_id = #{parent_id},
+            sort_order = #{sort_order}
+        WHERE id = #{id} AND user_id = #{user_id};
+    </update>
+
+    <update id="updateSortOrder">
+        UPDATE plans
+        SET sort_order = #{sort_order}
+        WHERE id = #{id} AND user_id = #{user_id};
+    </update>
+
+    <!-- WHERE に user_id も含めることで、本人が作成したプラン以外は削除されない（0件のまま） -->
+    <update id="delete">
+        UPDATE plans
+        SET delete_flg = 1
+        WHERE id = #{id} AND user_id = #{user_id};
+    </update>
+
+</mapper>

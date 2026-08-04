@@ -1,60 +1,74 @@
 package com.udemy.hello.mapper;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import com.udemy.hello.model.ActionPlan;
-import com.udemy.hello.model.Goal;
 import com.udemy.hello.model.Note;
+import com.udemy.hello.model.Plan;
 
 /**
- * アクションプラン・目標の達成率を、メモの実効進捗から都度算出する（DBには保持しない）。
- * 仕様書「進捗集計ロジック」章の計算式に対応。
+ * プランの達成率を、末端（葉）から根に向かって再帰的に算出する（DBには保持しない）。
+ * このプランに直接リンクされたメモの実効進捗と、直属の子プランの達成率を
+ * 区別せずまとめて単純平均する（仕様書「進捗集計ロジック」章）。
  */
 @Service
 public class ProgressService {
 
 	@Autowired
-	private GoalMapper goalMapper;
-
-	@Autowired
-	private ActionPlanMapper actionPlanMapper;
+	private PlanMapper planMapper;
 
 	@Autowired
 	private NoteService noteService;
 
-	public List<ActionPlan> listActionPlansWithProgress(int userId) {
-		List<ActionPlan> plans = actionPlanMapper.findAll(userId);
+	public List<Plan> listPlansWithProgress(int userId) {
+		List<Plan> plans = planMapper.findAll(userId);
 		List<Note> notes = noteService.findAllForUser(userId);
 
-		Map<Integer, List<Integer>> progressByPlan = notes.stream()
-				.filter(n -> n.getAction_plan_id() != null)
-				.collect(Collectors.groupingBy(Note::getAction_plan_id,
-						Collectors.mapping(Note::getEffective_progress, Collectors.toList())));
+		// プランごとに、直接リンクされたメモの実効進捗（null除く）を集める
+		Map<Integer, List<Double>> notesByPlan = new HashMap<>();
+		for (Note note : notes) {
+			if (note.getEffective_progress() == null || note.getLinks() == null) {
+				continue;
+			}
+			for (Integer planId : note.getLinks()) {
+				notesByPlan.computeIfAbsent(planId, k -> new ArrayList<>()).add(note.getEffective_progress().doubleValue());
+			}
+		}
 
-		for (ActionPlan plan : plans) {
-			plan.setProgress(ProgressCalculator.averageOfInts(
-					progressByPlan.getOrDefault(plan.getId(), List.of())));
+		// 親IDごとに直属の子プランをまとめる（ルートはキーnull）
+		Map<Integer, List<Plan>> childrenByParent = new HashMap<>();
+		for (Plan plan : plans) {
+			childrenByParent.computeIfAbsent(plan.getParent_id(), k -> new ArrayList<>()).add(plan);
+		}
+
+		Map<Integer, Double> cache = new HashMap<>();
+		for (Plan plan : plans) {
+			plan.setProgress(computeProgress(plan, childrenByParent, notesByPlan, cache));
 		}
 		return plans;
 	}
 
-	public List<Goal> listGoalsWithProgress(int userId) {
-		List<Goal> goals = goalMapper.findAll(userId);
-		List<ActionPlan> plans = listActionPlansWithProgress(userId);
-
-		Map<Integer, List<Double>> progressByGoal = plans.stream()
-				.collect(Collectors.groupingBy(ActionPlan::getGoal_id,
-						Collectors.mapping(ActionPlan::getProgress, Collectors.toList())));
-
-		for (Goal goal : goals) {
-			goal.setProgress(ProgressCalculator.averageOfDoubles(
-					progressByGoal.getOrDefault(goal.getId(), List.of())));
+	private Double computeProgress(Plan plan, Map<Integer, List<Plan>> childrenByParent,
+			Map<Integer, List<Double>> notesByPlan, Map<Integer, Double> cache) {
+		if (cache.containsKey(plan.getId())) {
+			return cache.get(plan.getId());
 		}
-		return goals;
+
+		List<Double> values = new ArrayList<>(notesByPlan.getOrDefault(plan.getId(), List.of()));
+		for (Plan child : childrenByParent.getOrDefault(plan.getId(), List.of())) {
+			Double childProgress = computeProgress(child, childrenByParent, notesByPlan, cache);
+			if (childProgress != null) {
+				values.add(childProgress);
+			}
+		}
+
+		Double result = ProgressCalculator.averageOfDoubles(values);
+		cache.put(plan.getId(), result);
+		return result;
 	}
 }

@@ -5,15 +5,13 @@ import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import com.udemy.hello.model.Learning;
 import com.udemy.hello.model.categories;
 import com.udemy.hello.model.tags;
+import com.udemy.hello.model.learning_tag;
 import com.udemy.hello.model.PlanInterest;
 import com.udemy.hello.model.Inquiry;
 
-/**
- * カテゴリー／タグ、Proプラン導線、お問い合わせなど、目標・アクションプラン・メモに共通する
- * 周辺データを扱う。ドメイン本体（Goal / ActionPlan / Note）はそれぞれ専用のServiceを参照。
- */
 @Service
 public class LearningService {
 
@@ -32,6 +30,11 @@ public class LearningService {
     @Autowired
     private LearningMapper learningMapper;
 
+    // ユーザーID指定で全学習情報取得
+    public List<Learning> findALL(int user_id) {
+        return learningMapper.findAll(user_id);
+    }
+
     // カテゴリー・タグは個人ごとに管理するため、本人のものだけを取得する
     public List<categories> category_list(int userId) {
         return learningMapper.category_list(userId);
@@ -39,6 +42,20 @@ public class LearningService {
 
     public List<tags> tag_list(int userId) {
         return learningMapper.tag_list(userId);
+    }
+
+    public List<learning_tag> learning_tag(int userId) {
+        return learningMapper.learning_tag(userId);
+    }
+
+    // 学習情報登録（user_idを含む）
+    public int learning_insert(Learning learning) {
+        return learningMapper.learning_insert(learning);
+    }
+
+    // 無料プランの登録上限チェック用（本人の削除されていない記録数）
+    public int learning_count(int userId) {
+        return learningMapper.learning_count(userId);
     }
 
     // 無料プランのカテゴリー・タグ上限チェック用（本人の件数）
@@ -50,8 +67,33 @@ public class LearningService {
         return learningMapper.tag_count(userId);
     }
 
+    // 最新学習IDを取得（user_id指定）
+    public Integer learning_one_select(int user_id) {
+        return learningMapper.learning_one_select(user_id);
+    }
+
+    public void learning_tag_insert(Integer learning_id,Integer tag_id) {
+        learningMapper.learning_tag_insert(learning_id, tag_id);
+    }
+
     public void tags_insert(String name, int userId) {
         learningMapper.tags_insert(name, userId);
+    }
+
+    public Integer tags_search(String name, int userId) {
+        return learningMapper.tags_search(name, userId);
+    }
+
+    public int learning_update(Learning learning) {
+        return learningMapper.learning_update(learning);
+    }
+
+    public void tags_delete(int learning_id) {
+        learningMapper.tags_delete(learning_id);
+    }
+
+    public int learning_delete(int id, int userId) {
+        return learningMapper.learning_delete(id, userId);
     }
 
     public void category_insert(String name, int userId) {
@@ -63,7 +105,7 @@ public class LearningService {
         return learningMapper.category_update(id, name, userId);
     }
 
-    // カテゴリーを使用している（本人の）メモの件数
+    // カテゴリーを使用している（本人の）学習記録の件数
     public int category_usage_count(int id, int userId) {
         return learningMapper.category_usage_count(id, userId);
     }
@@ -83,7 +125,7 @@ public class LearningService {
         return learningMapper.tag_update(id, name, userId);
     }
 
-    // タグを使用している（本人の）メモ（紐づけ）の件数
+    // タグを使用している（本人の）学習記録（紐づけ）の件数
     public int tag_usage_count(int id, int userId) {
         return learningMapper.tag_usage_count(id, userId);
     }

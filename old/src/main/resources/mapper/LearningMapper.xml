@@ -1,0 +1,275 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.udemy.hello.mapper.LearningMapper">
+    
+    <!-- LearningのResultMapにuser_idを追加 -->
+    <resultMap id="Learning" type="Learning">
+        <id property="id" column="id" />
+        <result property="title" column="title" />
+        <result property="heading_text" column="heading_text" />
+        <result property="explanatory_text" column="explanatory_text" />
+        <result property="understanding_level" column="understanding_level" />
+        <result property="reference_url" column="reference_url" />
+        <result property="created_at" column="created_at" />
+        <result property="category_name" column="name" />
+        <result property="github_path" column="github_path" />
+        <result property="commit_sha" column="commit_sha" />
+        <result property="repo_name" column="repo_name" />
+        <result property="delete_flg" column="delete_flg" />
+        <result property="user_id" column="user_id" />
+    </resultMap>
+    
+    <resultMap id="Learning_i" type="Integer">
+        <id property="id" column="id" />
+        <result property="title" column="title" />
+        <result property="explanatory_text" column="explanatory_text" />
+        <result property="understanding_level" column="understanding_level" />
+        <result property="reference_url" column="reference_url" />
+        <result property="created_at" column="created_at" />
+        <result property="category_id" column="category_id" />
+        <result property="user_id" column="user_id" />
+    </resultMap>
+    
+    <resultMap id="categories" type="categories">
+        <id property="id" column="id" />
+        <result property="name" column="name" />
+    </resultMap>
+    
+    <resultMap id="tags" type="tags">
+        <id property="id" column="id" />
+        <result property="name" column="name" />
+    </resultMap>
+
+    <resultMap id="Inquiry" type="Inquiry">
+        <id property="id" column="id" />
+        <result property="name" column="name" />
+        <result property="email" column="email" />
+        <result property="message" column="message" />
+        <result property="status" column="status" />
+        <result property="created_at" column="created_at" />
+    </resultMap>
+    
+    <resultMap id="tag" type="Integer">
+        <id property="id" column="id" />
+        <result property="name" column="name" />
+    </resultMap>
+    
+    <resultMap id="learning_tag" type="learning_tag">
+        <id property="id" column="id" />
+        <result property="learning_id" column="learning_id" />
+        <result property="tag_id" column="tag_id" />
+    </resultMap>
+
+    <!-- ユーザー別の学習一覧取得 -->
+    <!-- LEFT JOIN: category_id が未設定（クイック登録などカテゴリー任意の記録）の
+         場合でも一覧から漏れないようにする。INNER JOINだと該当行ごと消えてしまう -->
+    <select id="findAll" resultMap="Learning">
+        SELECT *
+        FROM learnings
+        LEFT JOIN categories ON categories.id = learnings.category_id
+        WHERE learnings.delete_flg = 0
+          AND learnings.user_id = #{user_id}
+        ORDER BY learnings.id ASC
+    </select>
+    
+    <!-- カテゴリー・タグは個人ごとに管理するため、本人のものだけを返す -->
+    <select id="category_list" resultMap="categories">
+        SELECT *
+        FROM categories
+        WHERE user_id = #{user_id}
+        ORDER BY id ASC
+    </select>
+
+    <select id="tag_list" resultMap="tags">
+        SELECT *
+        FROM tags
+        WHERE user_id = #{user_id}
+        ORDER BY id ASC
+    </select>
+
+    <!-- 本人の学習記録に紐づくタグ付けだけを返す -->
+    <select id="learning_tag" resultMap="learning_tag">
+        SELECT learning_tags.*
+        FROM learning_tags
+        INNER JOIN learnings ON learnings.id = learning_tags.learning_id
+        WHERE learnings.user_id = #{user_id}
+        ORDER BY learning_tags.id ASC
+    </select>
+    
+    <!-- 学習データ挿入にuser_idを追加 -->
+    <insert id="learning_insert">
+    	INSERT INTO learnings
+        (title, heading_text, explanatory_text, understanding_level, reference_url, created_at, category_id, github_path, commit_sha, repo_name, user_id)
+        VALUES
+        (#{title}, #{heading_text}, #{explanatory_text}, #{understanding_level}, #{reference_url}, #{created_at}, #{category_id}, #{github_path}, #{commit_sha}, #{repo_name}, #{user_id});
+    </insert>
+    
+    <!-- 無料プランの登録上限チェック用（本人の削除されていない記録数） -->
+    <select id="learning_count" resultType="int">
+        SELECT COUNT(*)
+        FROM learnings
+        WHERE delete_flg = 0 AND user_id = #{user_id};
+    </select>
+
+    <!-- 無料プランのカテゴリー・タグ上限チェック用（本人の件数） -->
+    <select id="category_count" resultType="int">
+        SELECT COUNT(*)
+        FROM categories
+        WHERE user_id = #{user_id};
+    </select>
+
+    <select id="tag_count" resultType="int">
+        SELECT COUNT(*)
+        FROM tags
+        WHERE user_id = #{user_id};
+    </select>
+
+    <select id="learning_one_select" resultMap="Learning_i">
+        SELECT id
+        FROM learnings
+        WHERE user_id = #{user_id}
+        ORDER BY id DESC
+        LIMIT 1;
+    </select>
+    
+    <insert id="learning_tag_insert">
+        INSERT INTO learning_tags
+        (learning_id, tag_id)
+        VALUES 
+        (#{learning_id}, #{tag_id});
+    </insert>
+    
+    <insert id="tags_insert">
+        INSERT INTO tags
+        (name, user_id)
+        VALUES
+        (#{name}, #{user_id});
+    </insert>
+
+    <select id="tags_search" resultMap="tag">
+        SELECT id
+        FROM tags
+        WHERE name = #{name} AND user_id = #{user_id}
+        ORDER BY id;
+    </select>
+    
+    <delete id="tags_delete">
+        DELETE
+        FROM learning_tags
+        WHERE learning_id = #{learning_id};
+    </delete>
+    
+    <!-- WHERE に user_id も含めることで、本人が作成した記録以外は更新されない（0件のまま）ようにする -->
+    <update id="learning_update">
+    	UPDATE learnings
+        SET title = #{title},
+            heading_text = #{heading_text},
+            explanatory_text = #{explanatory_text},
+            understanding_level = #{understanding_level},
+            reference_url = #{reference_url},
+            created_at = #{created_at},
+            category_id = #{category_id},
+            github_path = #{github_path},
+            commit_sha = #{commit_sha},
+            repo_name = #{repo_name},
+            user_id = #{user_id}
+        WHERE id = #{id} AND user_id = #{user_id};
+    </update>
+
+    <!-- WHERE に user_id も含めることで、本人が作成した記録以外は削除されない（0件のまま）ようにする -->
+    <update id="learning_delete">
+	    UPDATE learnings
+	    SET delete_flg = 1
+	    WHERE id = #{id} AND user_id = #{user_id};
+    </update>
+    
+    <insert id="category_insert">
+        INSERT INTO categories
+        (name, user_id)
+        VALUES
+        (#{name}, #{user_id});
+    </insert>
+
+    <!-- カテゴリーの名前変更（本人が作成したもの以外は0件のまま更新されない） -->
+    <update id="category_update">
+        UPDATE categories
+        SET name = #{name}
+        WHERE id = #{id} AND user_id = #{user_id};
+    </update>
+
+    <!-- カテゴリーを使用している（本人の）学習記録の件数 -->
+    <select id="category_usage_count" resultType="int">
+        SELECT COUNT(*)
+        FROM learnings
+        WHERE category_id = #{id} AND user_id = #{user_id};
+    </select>
+
+    <!-- カテゴリーの削除（本人が作成したもの以外は0件のまま削除されない） -->
+    <delete id="category_delete">
+        DELETE
+        FROM categories
+        WHERE id = #{id} AND user_id = #{user_id};
+    </delete>
+
+    <!-- タグの名前変更（本人が作成したもの以外は0件のまま更新されない） -->
+    <update id="tag_update">
+        UPDATE tags
+        SET name = #{name}
+        WHERE id = #{id} AND user_id = #{user_id};
+    </update>
+
+    <!-- タグを使用している（本人の）学習記録（紐づけ）の件数 -->
+    <select id="tag_usage_count" resultType="int">
+        SELECT COUNT(*)
+        FROM learning_tags
+        INNER JOIN tags ON tags.id = learning_tags.tag_id
+        WHERE learning_tags.tag_id = #{id} AND tags.user_id = #{user_id};
+    </select>
+
+    <!-- タグの削除（本人が作成したもの以外は0件のまま削除されない） -->
+    <delete id="tag_delete">
+        DELETE
+        FROM tags
+        WHERE id = #{id} AND user_id = #{user_id};
+    </delete>
+
+    <!-- Proプラン「通知を希望する」の登録（同じユーザーの二重登録は無視） -->
+    <insert id="plan_interest_insert" parameterType="PlanInterest">
+        INSERT INTO plan_interests
+        (user_id, github_login, created_at)
+        VALUES
+        (#{user_id}, #{github_login}, NOW())
+        ON CONFLICT (user_id) DO NOTHING;
+    </insert>
+
+    <!-- 既に登録済みかどうか -->
+    <select id="plan_interest_exists" resultType="int">
+        SELECT COUNT(*)
+        FROM plan_interests
+        WHERE user_id = #{user_id};
+    </select>
+
+    <!-- お問い合わせの登録（未ログインの訪問者からも送信されるためuser_idは持たない） -->
+    <insert id="inquiry_insert" parameterType="Inquiry">
+        INSERT INTO inquiries
+        (name, email, message, status, created_at)
+        VALUES
+        (#{name}, #{email}, #{message}, 'new', now());
+    </insert>
+
+    <!-- お問い合わせ一覧（新しい順） -->
+    <select id="inquiry_list" resultMap="Inquiry">
+        SELECT id, name, email, message, status, created_at
+        FROM inquiries
+        ORDER BY created_at DESC;
+    </select>
+
+    <!-- お問い合わせのステータス更新（new → read → done） -->
+    <update id="inquiry_status_update">
+        UPDATE inquiries
+        SET status = #{status}
+        WHERE id = #{id};
+    </update>
+
+</mapper>

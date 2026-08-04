@@ -1,18 +1,25 @@
-# 学習記録アプリ（バックエンド）
+# 目標達成支援アプリ（バックエンド）
 
-学習ログ管理アプリの **バックエンド API** です。
-Java / Spring Boot で実装し、学習記録の永続化・GitHub OAuth 認証・タグ／カテゴリ管理を担います。
+最終目標 → アクションプラン → メモ の構造で「やることの明確化」を支援するアプリの **バックエンド API** です。
+Java / Spring Boot で実装し、目標・アクションプラン・メモ（学習用／タスク用／通常）の永続化、
+進捗の自動集計、GitHub OAuth 認証、タグ／カテゴリ管理を担います。
 
 > 🔗 フロントエンド（React / TypeScript）：https://github.com/toda-keita-git/Learning-frontend
+>
+> 元々は「学習ログ」アプリとして開発していたコードを `old/` に残しています。詳細仕様は
+> フロントエンド／バックエンド双方の会話履歴からまとめた仕様書（Artifact）を参照してください。
 
 ---
 
 ## 📌 担当している役割
 
-- **学習記録の CRUD API**（登録・取得・更新・削除）
-- **タグ／カテゴリの管理**（多対多をリレーションで管理）
+- **目標 / アクションプラン / メモ の CRUD API**（`GoalController` / `ActionPlanController` / `NoteController`）
+- **進捗の自動集計**：メモの習熟度・進捗度（todoの消化率含む）から、アクションプラン→目標の達成率を都度算出（`ProgressService`）
+- **アクションプランの優先順位付け**（ドラッグ&ドロップ確定後の一括並べ替えAPI）
+- **メモの後からの紐付け**（未紐付けメモをアクションプランへ後から紐付け）
+- **タグ／カテゴリの管理**（既存資産をそのまま流用）
 - **GitHub OAuth**：フロントから受け取った認可コードをアクセストークンに交換し、ユーザーを DB に登録・更新
-- **PostgreSQL への永続化**（MyBatis によるマッパー実装）
+- **PostgreSQL への永続化**（MyBatis によるマッパー実装。テーブル定義は [`src/main/resources/db/goal_schema.sql`](./src/main/resources/db/goal_schema.sql)）
 
 ## 🛠 使用技術
 
@@ -29,12 +36,16 @@ Java / Spring Boot で実装し、学習記録の永続化・GitHub OAuth 認証
 
 | メソッド | パス | 内容 |
 |---|---|---|
-| GET  | `/learning?user_id={id}` | ユーザーの学習記録一覧を取得 |
-| POST | `/learning_insert` | 学習記録を登録（タグも同時に登録） |
-| POST | `/learning_update/{id}` | 学習記録を更新 |
-| POST | `/learning_delete/{id}` | 学習記録を削除 |
-| GET  | `/category_list` | カテゴリ一覧 |
-| GET  | `/tag_list` | タグ一覧 |
+| GET  | `/goals` | 目標一覧を取得（達成率込み） |
+| POST | `/goal_insert` / `/goal_update/{id}` / `/goal_delete/{id}` | 目標の登録・更新・削除 |
+| GET  | `/action_plans` | アクションプラン一覧を取得（達成率込み） |
+| POST | `/action_plan_insert` / `/action_plan_update/{id}` / `/action_plan_delete/{id}` | アクションプランの登録・更新・削除 |
+| POST | `/action_plan_reorder` | ドラッグ&ドロップ確定後の優先順位一括更新 |
+| GET  | `/notes` | メモ一覧を取得（学習用／タスク用／通常） |
+| POST | `/note_insert` / `/note_update/{id}` / `/note_delete/{id}` | メモの登録・更新・削除 |
+| POST | `/note_attach/{id}` | 未紐付けメモをアクションプランへ後から紐付け |
+| POST | `/note_todo_toggle/{id}` | タスク用メモのtodoチェック切替 |
+| GET  | `/category_list` / `/tag_list` | カテゴリ・タグ一覧 |
 | POST | `/github/callback` | GitHub OAuth コールバック（コード→トークン交換＋ユーザー登録） |
 
 ## 🏗 構成
@@ -42,13 +53,19 @@ Java / Spring Boot で実装し、学習記録の永続化・GitHub OAuth 認証
 ```
 src/main/java/com/udemy/hello/
 ├── LearningApplication.java     … エントリポイント
-├── LearningController.java      … 学習記録の REST コントローラ
+├── GoalController.java          … 目標の REST コントローラ
+├── ActionPlanController.java    … アクションプランの REST コントローラ
+├── NoteController.java          … メモの REST コントローラ
+├── LearningController.java      … カテゴリ／タグ・GitHub連携先切替・お問い合わせ等の共通API
 ├── GitHubAuthController.java    … GitHub OAuth コールバック
-├── mapper/                      … Service / MyBatis Mapper
-└── model/                       … エンティティ（Learning, tags, categories 等）
+├── mapper/                      … Service / MyBatis Mapper（ProgressServiceが進捗集計を担当）
+└── model/                       … エンティティ（Goal, ActionPlan, Note, NoteTodoItem 等）
 src/main/resources/
 ├── application.properties       … 設定（秘密情報は環境変数から注入）
+├── db/goal_schema.sql           … 目標達成アプリ用テーブルのDDL・移行スクリプト
 └── mapper/*.xml                 … MyBatis の SQL 定義
+
+old/                              … 元の「学習ログ」アプリ時代のソース一式（参照用に保持）
 ```
 
 ## 🚀 起動方法

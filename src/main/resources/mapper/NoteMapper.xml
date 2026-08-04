@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.udemy.hello.mapper.NoteMapper">
+
+    <resultMap id="Note" type="Note">
+        <id property="id" column="id" />
+        <result property="action_plan_id" column="action_plan_id" />
+        <result property="type" column="type" />
+        <result property="title" column="title" />
+        <result property="body" column="body" />
+        <result property="mastery" column="mastery" />
+        <result property="progress" column="progress" />
+        <result property="category_id" column="category_id" />
+        <result property="github_path" column="github_path" />
+        <result property="commit_sha" column="commit_sha" />
+        <result property="repo_name" column="repo_name" />
+        <result property="created_at" column="created_at" />
+        <result property="delete_flg" column="delete_flg" />
+        <result property="user_id" column="user_id" />
+    </resultMap>
+
+    <resultMap id="NoteTodoItem" type="NoteTodoItem">
+        <id property="id" column="id" />
+        <result property="note_id" column="note_id" />
+        <result property="label" column="label" />
+        <result property="checked" column="checked" />
+        <result property="sort_order" column="sort_order" />
+    </resultMap>
+
+    <!-- ユーザー別の全メモ取得。アクションプラン別・種別別の絞り込みはフロント側で行う（learningsと同じ流儀） -->
+    <select id="findAll" resultMap="Note">
+        SELECT *
+        FROM notes
+        WHERE delete_flg = 0
+          AND user_id = #{user_id}
+        ORDER BY created_at DESC;
+    </select>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO notes
+        (action_plan_id, type, title, body, mastery, progress, category_id, github_path, commit_sha, repo_name, created_at, user_id)
+        VALUES
+        (#{action_plan_id}, #{type}, #{title}, #{body}, #{mastery}, #{progress}, #{category_id}, #{github_path}, #{commit_sha}, #{repo_name}, #{created_at}, #{user_id});
+    </insert>
+
+    <!-- WHERE に user_id も含めることで、本人が作成したメモ以外は更新されない（0件のまま） -->
+    <update id="update">
+        UPDATE notes
+        SET action_plan_id = #{action_plan_id},
+            type = #{type},
+            title = #{title},
+            body = #{body},
+            mastery = #{mastery},
+            progress = #{progress},
+            category_id = #{category_id},
+            github_path = #{github_path},
+            commit_sha = #{commit_sha},
+            repo_name = #{repo_name}
+        WHERE id = #{id} AND user_id = #{user_id};
+    </update>
+
+    <!-- WHERE に user_id も含めることで、本人が作成したメモ以外は削除されない（0件のまま） -->
+    <update id="delete">
+        UPDATE notes
+        SET delete_flg = 1
+        WHERE id = #{id} AND user_id = #{user_id};
+    </update>
+
+    <!-- 未紐付けメモを後からアクションプランに紐付ける -->
+    <update id="attach">
+        UPDATE notes
+        SET action_plan_id = #{action_plan_id}
+        WHERE id = #{id} AND user_id = #{user_id};
+    </update>
+
+    <!-- アクションプラン削除時、紐づくメモをtodo等は残したまま未紐付けに戻す -->
+    <update id="detachByActionPlan">
+        UPDATE notes
+        SET action_plan_id = NULL
+        WHERE action_plan_id = #{action_plan_id};
+    </update>
+
+    <!-- 本人の全メモに紐づくtodo項目。Note組み立て時にnote_idでグルーピングする -->
+    <select id="findTodoItemsByUser" resultMap="NoteTodoItem">
+        SELECT note_todo_items.*
+        FROM note_todo_items
+        INNER JOIN notes ON notes.id = note_todo_items.note_id
+        WHERE notes.user_id = #{user_id}
+          AND notes.delete_flg = 0
+        ORDER BY note_todo_items.note_id ASC, note_todo_items.sort_order ASC;
+    </select>
+
+    <insert id="insertTodoItem">
+        INSERT INTO note_todo_items
+        (note_id, label, checked, sort_order)
+        VALUES
+        (#{note_id}, #{label}, #{checked}, #{sort_order});
+    </insert>
+
+    <delete id="deleteTodoItemsByNote">
+        DELETE FROM note_todo_items
+        WHERE note_id = #{note_id};
+    </delete>
+
+    <!-- todo1件のチェック切替。note_idの所有者がuser_idであるものだけを対象にする -->
+    <update id="updateTodoItemChecked">
+        UPDATE note_todo_items
+        SET checked = #{checked}
+        WHERE id = #{id}
+          AND note_id IN (SELECT id FROM notes WHERE user_id = #{user_id});
+    </update>
+
+</mapper>

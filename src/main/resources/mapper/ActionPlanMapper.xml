@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.udemy.hello.mapper.ActionPlanMapper">
+
+    <resultMap id="ActionPlan" type="ActionPlan">
+        <id property="id" column="id" />
+        <result property="goal_id" column="goal_id" />
+        <result property="title" column="title" />
+        <result property="priority" column="priority" />
+        <result property="status" column="status" />
+        <result property="created_at" column="created_at" />
+        <result property="delete_flg" column="delete_flg" />
+        <result property="user_id" column="user_id" />
+    </resultMap>
+
+    <!-- ユーザー別の全アクションプラン取得。goal_id別の絞り込みはフロント側で行う（learningsと同じ流儀） -->
+    <select id="findAll" resultMap="ActionPlan">
+        SELECT *
+        FROM action_plans
+        WHERE delete_flg = 0
+          AND user_id = #{user_id}
+        ORDER BY goal_id ASC, priority ASC
+    </select>
+
+    <select id="nextPriority" resultType="int">
+        SELECT COALESCE(MAX(priority), -1) + 1
+        FROM action_plans
+        WHERE goal_id = #{goal_id} AND user_id = #{user_id} AND delete_flg = 0;
+    </select>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO action_plans
+        (goal_id, title, priority, status, created_at, user_id)
+        VALUES
+        (#{goal_id}, #{title}, #{priority}, #{status}, #{created_at}, #{user_id});
+    </insert>
+
+    <!-- WHERE に user_id も含めることで、本人が作成したアクションプラン以外は更新されない（0件のまま） -->
+    <update id="update">
+        UPDATE action_plans
+        SET title = #{title},
+            status = #{status}
+        WHERE id = #{id} AND user_id = #{user_id};
+    </update>
+
+    <!-- ドラッグ&ドロップでの並べ替え確定時、1件ずつ呼び出して表示順を書き換える -->
+    <update id="updatePriority">
+        UPDATE action_plans
+        SET priority = #{priority}
+        WHERE id = #{id} AND user_id = #{user_id};
+    </update>
+
+    <!-- WHERE に user_id も含めることで、本人が作成したアクションプラン以外は削除されない（0件のまま） -->
+    <update id="delete">
+        UPDATE action_plans
+        SET delete_flg = 1
+        WHERE id = #{id} AND user_id = #{user_id};
+    </update>
+
+</mapper>

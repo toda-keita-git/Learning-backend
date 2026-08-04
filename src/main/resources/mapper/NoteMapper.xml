@@ -11,6 +11,7 @@
         <result property="mastery" column="mastery" />
         <result property="progress" column="progress" />
         <result property="category_id" column="category_id" />
+        <result property="review_interval_days" column="review_interval_days" />
         <result property="created_at" column="created_at" />
         <result property="delete_flg" column="delete_flg" />
         <result property="user_id" column="user_id" />
@@ -55,9 +56,9 @@
 
     <insert id="insert" useGeneratedKeys="true" keyProperty="id">
         INSERT INTO notes
-        (type, title, body, mastery, progress, category_id, created_at, user_id)
+        (type, title, body, mastery, progress, category_id, review_interval_days, created_at, user_id)
         VALUES
-        (#{type}, #{title}, #{body}, #{mastery}, #{progress}, #{category_id}, #{created_at}, #{user_id});
+        (#{type}, #{title}, #{body}, #{mastery}, #{progress}, #{category_id}, #{review_interval_days}, #{created_at}, #{user_id});
     </insert>
 
     <!-- 無料プランの登録上限チェック用（本人の削除されていないメモ数） -->
@@ -75,7 +76,8 @@
             body = #{body},
             mastery = #{mastery},
             progress = #{progress},
-            category_id = #{category_id}
+            category_id = #{category_id},
+            review_interval_days = #{review_interval_days}
         WHERE id = #{id} AND user_id = #{user_id};
     </update>
 

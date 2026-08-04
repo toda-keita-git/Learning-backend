@@ -19,6 +19,8 @@ public class Note {
 	private Integer mastery;  // type=learning のみ 0-100
 	private Integer progress; // type=task かつ todo_items未使用の場合の手入力値 0-100
 	private Integer category_id;
+	// nullなら「繰り返しなし」。設定時は「今日の復習」タブでn日おきのやることとして表示される（頻度は自由設定）
+	private Integer review_interval_days;
 	private Timestamp created_at;
 	private int delete_flg;
 	private Integer user_id;

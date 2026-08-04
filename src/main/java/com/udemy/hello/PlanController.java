@@ -40,8 +40,9 @@ public class PlanController {
 		return progressService.listPlansWithProgress(userId);
 	}
 
+	// 戻り値のidは、ドラッグでメモを「新しいプランとして保存」した直後にそのままlink APIへ渡すために使う
 	@PostMapping("/plan_insert")
-	public ResponseEntity<String> plan_insert(@RequestBody Plan plan, HttpServletRequest request) {
+	public ResponseEntity<Map<String, Integer>> plan_insert(@RequestBody Plan plan, HttpServletRequest request) {
 		int userId = JwtAuthInterceptor.getVerifiedUserId(request);
 		plan.setUser_id(userId);
 		if (plan.getStatus() == null || plan.getStatus().isBlank()) {
@@ -49,7 +50,7 @@ public class PlanController {
 		}
 		plan.setCreated_at(new Timestamp(System.currentTimeMillis()));
 		planService.insert(plan);
-		return ResponseEntity.ok("inserted");
+		return ResponseEntity.ok(Map.of("id", plan.getId()));
 	}
 
 	@PostMapping("/plan_update/{id}")

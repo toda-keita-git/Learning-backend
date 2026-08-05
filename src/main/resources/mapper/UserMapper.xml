@@ -17,6 +17,10 @@
         <result property="repoName" column="repo_name" />
         <result property="createdAt" column="created_at" />
         <result property="deleteFlg" column="delete_flg" />
+        <result property="authProvider" column="auth_provider" />
+        <result property="googleSub" column="google_sub" />
+        <result property="googleRefreshToken" column="google_refresh_token" />
+        <result property="driveFolderId" column="drive_folder_id" />
     </resultMap>
 
     <!-- ==========================
@@ -31,7 +35,29 @@
     </select>
 
     <!-- ==========================
-         新規ユーザー登録
+         Googleアカウントの一意IDからユーザー検索
+         ========================== -->
+    <select id="findByGoogleSub" parameterType="string" resultMap="UserResultMap">
+        SELECT *
+        FROM users
+        WHERE google_sub = #{googleSub}
+          AND (delete_flg = FALSE OR delete_flg IS NULL)
+        LIMIT 1;
+    </select>
+
+    <!-- ==========================
+         idからユーザー検索
+         ========================== -->
+    <select id="findById" parameterType="int" resultMap="UserResultMap">
+        SELECT *
+        FROM users
+        WHERE id = #{id}
+          AND (delete_flg = FALSE OR delete_flg IS NULL)
+        LIMIT 1;
+    </select>
+
+    <!-- ==========================
+         新規ユーザー登録（GitHub・Google共通。使わない側のカラムはNULLのまま）
          ========================== -->
     <insert id="insert" parameterType="com.udemy.hello.model.User" useGeneratedKeys="true" keyProperty="id">
         INSERT INTO users (
@@ -42,7 +68,11 @@
             created_repo,
             repo_name,
             created_at,
-            delete_flg
+            delete_flg,
+            auth_provider,
+            google_sub,
+            google_refresh_token,
+            drive_folder_id
         )
         VALUES (
             #{githubLogin},
@@ -52,12 +82,16 @@
             #{createdRepo},
             #{repoName},
             NOW(),
-            FALSE
+            FALSE,
+            #{authProvider},
+            #{googleSub},
+            #{googleRefreshToken},
+            #{driveFolderId}
         );
     </insert>
 
     <!-- ==========================
-         ユーザー情報更新
+         ユーザー情報更新（GitHubログインの既存経路。無変更）
          ========================== -->
     <update id="update" parameterType="com.udemy.hello.model.User">
         UPDATE users
@@ -71,11 +105,41 @@
     </update>
 
     <!-- ==========================
+         Googleユーザー情報更新（GitHub側のupdate()には手を入れず、行の識別をidで行う専用SQL）
+         ========================== -->
+    <update id="updateGoogleUser" parameterType="com.udemy.hello.model.User">
+        UPDATE users
+        SET
+            email = #{email},
+            avatar_url = #{avatarUrl},
+            delete_flg = #{deleteFlg}
+        WHERE id = #{id};
+    </update>
+
+    <!-- ==========================
          使用するリポジトリ名の更新（既存リポジトリからの選択・自動作成時の初期設定の両方で使う）
          ========================== -->
     <update id="updateRepoName">
         UPDATE users
         SET repo_name = #{repoName}
+        WHERE id = #{id};
+    </update>
+
+    <!-- ==========================
+         添付先として使うGoogleドライブのフォルダIDの更新
+         ========================== -->
+    <update id="updateDriveFolderId">
+        UPDATE users
+        SET drive_folder_id = #{driveFolderId}
+        WHERE id = #{id};
+    </update>
+
+    <!-- ==========================
+         Driveアクセストークン再取得用のrefresh_tokenの更新
+         ========================== -->
+    <update id="updateGoogleRefreshToken">
+        UPDATE users
+        SET google_refresh_token = #{googleRefreshToken}
         WHERE id = #{id};
     </update>
 

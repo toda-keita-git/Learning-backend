@@ -76,6 +76,9 @@ public class GitHubAuthService {
                 newUser.setAvatarUrl(avatarUrl);
                 newUser.setAccessToken(accessToken);
                 newUser.setCreatedRepo(false);
+                // 明示的にNULLを渡すとDBのDEFAULT句が効かずauth_providerがNULLのまま
+                // 入ってしまうため、GitHub経路であることを明示しておく
+                newUser.setAuthProvider("github");
                 userMapper.insert(newUser);
 
                 // --- 個別リポジトリ作成 ---

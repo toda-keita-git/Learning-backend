@@ -43,6 +43,7 @@
         <result property="commit_sha" column="commit_sha" />
         <result property="repo_name" column="repo_name" />
         <result property="sort_order" column="sort_order" />
+        <result property="provider" column="provider" />
     </resultMap>
 
     <!-- ユーザー別の全メモ取得。プラン別・種別別の絞り込みはフロント側で行う（learningsと同じ流儀） -->
@@ -179,8 +180,8 @@
 
     <!-- 本人のメモにだけ添付を追加できる（他人のメモへは0件のまま） -->
     <insert id="insertAttachment" useGeneratedKeys="true" keyProperty="attachment.id">
-        INSERT INTO note_attachments (note_id, kind, github_path, commit_sha, repo_name, sort_order)
-        SELECT #{attachment.note_id}, #{attachment.kind}, #{attachment.github_path}, #{attachment.commit_sha}, #{attachment.repo_name}, #{attachment.sort_order}
+        INSERT INTO note_attachments (note_id, kind, github_path, commit_sha, repo_name, sort_order, provider)
+        SELECT #{attachment.note_id}, #{attachment.kind}, #{attachment.github_path}, #{attachment.commit_sha}, #{attachment.repo_name}, #{attachment.sort_order}, #{attachment.provider}
         WHERE EXISTS (SELECT 1 FROM notes WHERE id = #{attachment.note_id} AND user_id = #{user_id});
     </insert>
 

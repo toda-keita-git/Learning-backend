@@ -16,6 +16,12 @@ public class User {
     private boolean createdRepo;
     private String repoName;          // 学習記録の添付先として使うGitHubリポジトリ名
 
+    // --- Googleドライブ連携用（GitHub連携と並存） ---
+    private String authProvider;      // "github" / "google"
+    private String googleSub;         // Googleアカウントの一意ID
+    private String googleRefreshToken; // Driveアクセストークン再取得用。フロントには絶対に渡さない
+    private String driveFolderId;     // 添付ファイルの保存先として使うGoogleドライブのフォルダID
+
     // --- Getter / Setter ---
     public Integer getId() {
         return id;
@@ -102,6 +108,35 @@ public class User {
     }
     public void setRepoName(String repoName) {
         this.repoName = repoName;
+    }
+
+    // --- Googleドライブ連携用の getter/setter ---
+    public String getAuthProvider() {
+        return authProvider;
+    }
+    public void setAuthProvider(String authProvider) {
+        this.authProvider = authProvider;
+    }
+
+    public String getGoogleSub() {
+        return googleSub;
+    }
+    public void setGoogleSub(String googleSub) {
+        this.googleSub = googleSub;
+    }
+
+    public String getGoogleRefreshToken() {
+        return googleRefreshToken;
+    }
+    public void setGoogleRefreshToken(String googleRefreshToken) {
+        this.googleRefreshToken = googleRefreshToken;
+    }
+
+    public String getDriveFolderId() {
+        return driveFolderId;
+    }
+    public void setDriveFolderId(String driveFolderId) {
+        this.driveFolderId = driveFolderId;
     }
 
     // --- toString() ---

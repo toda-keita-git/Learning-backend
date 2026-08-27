@@ -3,7 +3,7 @@ package com.udemy.hello.model;
 import lombok.Data;
 
 /**
- * タスク用メモに付けるチェック付きtodo項目
+ * チェックリスト用メモに付けるチェック付きtodo項目
  */
 @Data
 public class NoteTodoItem {

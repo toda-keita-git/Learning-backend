@@ -18,8 +18,13 @@ public class WebConfig implements WebMvcConfigurer {
         // 全エンドポイントで本人確認を必須にする。
         // /google/refreshはapp_tokenでの本人確認が必要なため対象外にしない（/google/**の
         // ワイルドカードではなく/google/callbackだけを個別に除外している点に注意）
+        //
+        // /error は必ず除外すること。Springは404や例外発生時に内部で/errorへフォワードするが、
+        // このフォワードもDispatcherServletを通るためインターセプターが動いてしまう。
+        // /errorを除外しないと、Authorizationヘッダーが引き継がれないせいで
+        // 「本当は404や500なのに401が返る」状態になり、原因究明が著しく困難になる
         registry.addInterceptor(jwtAuthInterceptor)
                 .addPathPatterns("/**")
-                .excludePathPatterns("/github/**", "/google/callback", "/ping", "/inquiry_submit");
+                .excludePathPatterns("/github/**", "/google/callback", "/ping", "/inquiry_submit", "/error");
     }
 }

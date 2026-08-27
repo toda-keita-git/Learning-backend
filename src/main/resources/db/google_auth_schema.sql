@@ -11,6 +11,13 @@ ALTER TABLE users ADD COLUMN IF NOT EXISTS google_sub VARCHAR(255);
 ALTER TABLE users ADD COLUMN IF NOT EXISTS google_refresh_token TEXT;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS drive_folder_id VARCHAR(255);
 
+-- github_login・access_tokenはGitHub連携でのみ使う値で、Googleユーザーの行では
+-- 常にNULLになる。テーブル作成時のNOT NULL制約が残っているとGoogleユーザーの
+-- 登録が必ず失敗する（null value in column "github_login" ... violates not-null constraint）ため、
+-- 制約を外す。既にNULL許容ならこの文は何もしないので、再実行しても安全。
+ALTER TABLE users ALTER COLUMN github_login DROP NOT NULL;
+ALTER TABLE users ALTER COLUMN access_token DROP NOT NULL;
+
 -- google_subはGoogleアカウントごとに一意（NULLは複数許容＝GitHubユーザーは対象外）
 CREATE UNIQUE INDEX IF NOT EXISTS idx_users_google_sub ON users(google_sub) WHERE google_sub IS NOT NULL;
 

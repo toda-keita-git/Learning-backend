@@ -7,7 +7,7 @@ import lombok.Data;
 
 /**
  * メモ Entity。プランに従属しない独立した記録で、0件以上のプランに多対多でリンクできる。
- * 学習用(learning)・タスク用(task)・通常(normal) の3種別を1モデルで表現し、
+ * 学習用(learning)・チェックリスト用(task)・通常(normal) の3種別を1モデルで表現し、
  * typeに応じて mastery / progress / todo_items のうち使う項目が変わる。
  */
 @Data

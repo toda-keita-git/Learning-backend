@@ -143,6 +143,69 @@ public class GitHubAuthService {
     }
 
     /**
+     * ログイン中のユーザー（userId）に、GitHubアカウントを「連携」する。
+     * ログインと違い新規ユーザーは作らず、既存の行にGitHub側の情報を書き足すだけ。
+     * これにより、Googleで作った目標・プラン・メモをそのまま保持したまま、
+     * 添付先としてGitHubリポジトリも使えるようになる。
+     */
+    public Map<String, Object> linkGithubAccount(int userId, String code) {
+        try {
+            User user = userMapper.findById(userId);
+            if (user == null) {
+                throw new RuntimeException("ユーザーが見つかりません。");
+            }
+
+            String accessToken = getAccessToken(code);
+
+            HttpHeaders userHeaders = new HttpHeaders();
+            userHeaders.setBearerAuth(accessToken);
+            userHeaders.setAccept(java.util.List.of(MediaType.APPLICATION_JSON));
+            ResponseEntity<JsonNode> userResponse = restTemplate.exchange(
+                    "https://api.github.com/user", HttpMethod.GET, new HttpEntity<>(userHeaders), JsonNode.class);
+
+            JsonNode userJson = userResponse.getBody();
+            if (userJson == null || !userJson.has("login")) {
+                throw new RuntimeException("GitHubユーザー情報の取得に失敗しました。");
+            }
+
+            String githubLogin = userJson.get("login").asText();
+            String email = userJson.hasNonNull("email") ? userJson.get("email").asText() : null;
+            String avatarUrl = userJson.hasNonNull("avatar_url") ? userJson.get("avatar_url").asText() : null;
+
+            // 同じGitHubアカウントが別ユーザーに連携済みだと、どちらの持ち物か
+            // 決められなくなるため拒否する（データの取り違えを防ぐ）
+            User owner = userMapper.findByGithubLogin(githubLogin);
+            if (owner != null && !owner.getId().equals(user.getId())) {
+                throw new RuntimeException("このGitHubアカウントは既に別のアカウントに連携されています。");
+            }
+
+            // 添付先リポジトリはまだ持っていない場合だけ用意する
+            String repoName = user.getRepoName();
+            boolean createdRepo = user.getCreatedRepo();
+            if (repoName == null || repoName.isBlank()) {
+                createUserRepoIfNotExist(accessToken, githubLogin);
+                repoName = "learning-site-" + githubLogin;
+                createdRepo = true;
+            }
+
+            userMapper.linkGithubAccount(user.getId(), githubLogin, accessToken, repoName, createdRepo);
+            userMapper.fillProfileIfEmpty(user.getId(), email, avatarUrl);
+
+            logger.info("✅ ユーザーID {} にGitHubアカウント '{}' を連携しました。", user.getId(), githubLogin);
+
+            Map<String, Object> result = new HashMap<>();
+            result.put("access_token", accessToken);
+            result.put("github_login", githubLogin);
+            result.put("repo_name", repoName);
+            return result;
+
+        } catch (Exception e) {
+            logger.error("GitHubアカウントの連携に失敗しました: {}", e.getMessage(), e);
+            throw new RuntimeException("GitHubアカウントの連携に失敗しました: " + e.getMessage());
+        }
+    }
+
+    /**
      * 学習記録の添付先として使うリポジトリを、本人の既存リポジトリに切り替える。
      * 新規作成は行わない（自動作成される既定のリポジトリとは別に、本人がGitHub上に
      * 既に持っているリポジトリを選ぶための機能）。

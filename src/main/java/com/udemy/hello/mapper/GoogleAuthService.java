@@ -167,6 +167,71 @@ public class GoogleAuthService {
         return result;
     }
 
+    /**
+     * ログイン中のユーザー（userId）に、Googleアカウントを「連携」する。
+     * ログインと違い新規ユーザーは作らず、既存の行にGoogle側の情報を書き足すだけ。
+     * これにより、GitHubで作った目標・プラン・メモをそのまま保持したまま、
+     * 添付先としてGoogleドライブも使えるようになる。
+     */
+    public Map<String, Object> linkGoogleAccount(int userId, String code) {
+        try {
+            User user = userMapper.findById(userId);
+            if (user == null) {
+                throw new RuntimeException("ユーザーが見つかりません。");
+            }
+
+            TokenResponse tokenResponse = exchangeCodeForTokens(code);
+
+            HttpHeaders userHeaders = new HttpHeaders();
+            userHeaders.setBearerAuth(tokenResponse.accessToken);
+            ResponseEntity<JsonNode> userResponse = restTemplate.exchange(
+                    USERINFO_URL, HttpMethod.GET, new HttpEntity<>(userHeaders), JsonNode.class);
+
+            JsonNode userJson = userResponse.getBody();
+            if (userJson == null || !userJson.has("sub")) {
+                throw new RuntimeException("Googleユーザー情報の取得に失敗しました。");
+            }
+
+            String sub = userJson.get("sub").asText();
+            String email = userJson.hasNonNull("email") ? userJson.get("email").asText() : null;
+            String avatarUrl = userJson.hasNonNull("picture") ? userJson.get("picture").asText() : null;
+
+            // 同じGoogleアカウントが別ユーザーに連携済みだと、どちらの持ち物か
+            // 決められなくなるため拒否する（データの取り違えを防ぐ）
+            User owner = userMapper.findByGoogleSub(sub);
+            if (owner != null && !owner.getId().equals(user.getId())) {
+                throw new RuntimeException("このGoogleアカウントは既に別のアカウントに連携されています。");
+            }
+
+            // Driveフォルダはまだ持っていない場合だけ作る
+            String folderId = user.getDriveFolderId();
+            if (folderId == null || folderId.isBlank()) {
+                folderId = createUserDriveFolder(tokenResponse.accessToken, sub);
+            }
+
+            userMapper.linkGoogleAccount(user.getId(), sub, folderId);
+            userMapper.fillProfileIfEmpty(user.getId(), email, avatarUrl);
+
+            // refresh_tokenは初回同意時（prompt=consent時）のみ返る。返った時だけ保存する
+            if (tokenResponse.refreshToken != null && !tokenResponse.refreshToken.isBlank()) {
+                userMapper.updateGoogleRefreshToken(user.getId(), tokenResponse.refreshToken);
+            }
+
+            logger.info("✅ ユーザーID {} にGoogleアカウント '{}' を連携しました。", user.getId(), sub);
+
+            Map<String, Object> result = new HashMap<>();
+            result.put("access_token", tokenResponse.accessToken);
+            result.put("expires_in", tokenResponse.expiresIn);
+            result.put("google_email", email);
+            result.put("drive_folder_id", folderId);
+            return result;
+
+        } catch (Exception e) {
+            logger.error("Googleアカウントの連携に失敗しました: {}", e.getMessage(), e);
+            throw new RuntimeException("Googleアカウントの連携に失敗しました: " + e.getMessage());
+        }
+    }
+
     private String createUserDriveFolder(String accessToken, String sub) {
         HttpHeaders headers = new HttpHeaders();
         headers.setBearerAuth(accessToken);

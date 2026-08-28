@@ -143,4 +143,40 @@
         WHERE id = #{id};
     </update>
 
+    <!-- ==========================
+         アカウント連携：既存ユーザー行にGoogleアカウントを追加する。
+         新規ユーザーは作らず、ログイン中のユーザーのidで行を特定する。
+         drive_folder_idは既に持っている場合に消さないよう、NULLのときだけ更新する
+         ========================== -->
+    <update id="linkGoogleAccount">
+        UPDATE users
+        SET google_sub = #{googleSub},
+            drive_folder_id = COALESCE(drive_folder_id, #{driveFolderId})
+        WHERE id = #{id};
+    </update>
+
+    <!-- ==========================
+         アカウント連携：既存ユーザー行にGitHubアカウントを追加する。
+         repo_nameは既に持っている場合に消さないよう、NULLのときだけ更新する
+         ========================== -->
+    <update id="linkGithubAccount">
+        UPDATE users
+        SET github_login = #{githubLogin},
+            access_token = #{accessToken},
+            repo_name = COALESCE(repo_name, #{repoName}),
+            created_repo = #{createdRepo}
+        WHERE id = #{id};
+    </update>
+
+    <!-- ==========================
+         連携時のプロフィール補完。既に値が入っている項目は上書きしない
+         （GitHubで登録した名前・アイコンが、Google連携で勝手に変わらないようにする）
+         ========================== -->
+    <update id="fillProfileIfEmpty">
+        UPDATE users
+        SET email = COALESCE(email, #{email}),
+            avatar_url = COALESCE(avatar_url, #{avatarUrl})
+        WHERE id = #{id};
+    </update>
+
 </mapper>

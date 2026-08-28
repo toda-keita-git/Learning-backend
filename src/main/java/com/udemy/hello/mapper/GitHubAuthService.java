@@ -143,6 +143,31 @@ public class GitHubAuthService {
     }
 
     /**
+     * 保存済みのGitHubアクセストークンを返す。
+     *
+     * GitHubへの添付操作（リポジトリへのファイル作成・取得）はブラウザ側のOctokitが行うため、
+     * トークンがブラウザに無いと操作できない。GitHubでログインした場合はログイン応答で
+     * 受け取れるが、Googleでログインして後からGitHubを連携した場合は受け取る機会が無い。
+     * そのためGoogleの/google/refreshと同じく、サーバーが保持している値を
+     * 本人確認(JWT)のうえで渡せるようにする。
+     */
+    public Map<String, Object> getStoredGithubToken(int userId) {
+        User user = userMapper.findById(userId);
+        if (user == null) {
+            throw new RuntimeException("ユーザーが見つかりません。");
+        }
+        if (user.getAccessToken() == null || user.getAccessToken().isBlank()) {
+            throw new RuntimeException("GitHub連携が完了していません。GitHubアカウントを連携してください。");
+        }
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("access_token", user.getAccessToken());
+        result.put("github_login", user.getGithubLogin());
+        result.put("repo_name", user.getRepoName());
+        return result;
+    }
+
+    /**
      * ログイン中のユーザー（userId）に、GitHubアカウントを「連携」する。
      * ログインと違い新規ユーザーは作らず、既存の行にGitHub側の情報を書き足すだけ。
      * これにより、Googleで作った目標・プラン・メモをそのまま保持したまま、

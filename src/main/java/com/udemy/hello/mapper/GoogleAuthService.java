@@ -232,6 +232,36 @@ public class GoogleAuthService {
         }
     }
 
+    /**
+     * Googleは連携済みなのに添付先のDriveフォルダIDだけが欠けている状態を、
+     * 保存済みのrefresh_tokenを使って自力で埋める。
+     *
+     * フォルダIDが無いとメモの編集画面に「保存先: Google」の選択肢が出ないため、
+     * 「連携済みなのにGoogleドライブが選べない」という分かりにくい状態になる。
+     * 連携処理が途中で失敗した場合などに備え、/me から呼んで自動修復する。
+     *
+     * @return 埋めたフォルダID。埋められなかった場合はnull（呼び出し側は今まで通り動く）
+     */
+    public String ensureDriveFolderId(User user) {
+        if (user.getGoogleSub() == null || user.getGoogleSub().isBlank()) return null;
+        if (user.getDriveFolderId() != null && !user.getDriveFolderId().isBlank()) {
+            return user.getDriveFolderId();
+        }
+        if (user.getGoogleRefreshToken() == null || user.getGoogleRefreshToken().isBlank()) return null;
+
+        try {
+            TokenResponse tokenResponse = refreshWithToken(user.getGoogleRefreshToken());
+            String folderId = createUserDriveFolder(tokenResponse.accessToken, user.getGoogleSub());
+            userMapper.updateDriveFolderId(user.getId(), folderId);
+            logger.info("✅ ユーザーID {} の欠けていたDriveフォルダを作成しました。", user.getId());
+            return folderId;
+        } catch (Exception e) {
+            // 埋められなくてもアプリ自体は使えるため、ログだけ残して握りつぶす
+            logger.warn("Driveフォルダの自動作成に失敗しました: {}", e.getMessage());
+            return null;
+        }
+    }
+
     private String createUserDriveFolder(String accessToken, String sub) {
         HttpHeaders headers = new HttpHeaders();
         headers.setBearerAuth(accessToken);

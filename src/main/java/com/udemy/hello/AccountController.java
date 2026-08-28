@@ -1,5 +1,6 @@
 package com.udemy.hello;
 
+import com.udemy.hello.mapper.GoogleAuthService;
 import com.udemy.hello.mapper.UserMapper;
 import com.udemy.hello.model.User;
 import com.udemy.hello.security.JwtAuthInterceptor;
@@ -22,6 +23,9 @@ public class AccountController {
     @Autowired
     private UserMapper userMapper;
 
+    @Autowired
+    private GoogleAuthService googleAuthService;
+
     @GetMapping("/me")
     public Map<String, Object> me(HttpServletRequest request) {
         int userId = JwtAuthInterceptor.getVerifiedUserId(request);
@@ -43,7 +47,10 @@ public class AccountController {
         result.put("has_google", hasGoogle);
         result.put("github_login", user.getGithubLogin());
         result.put("repo_name", user.getRepoName());
-        result.put("drive_folder_id", user.getDriveFolderId());
+        // Googleは連携済みなのにフォルダIDだけ欠けていると、メモの編集画面で
+        // 「保存先: Google」が選べないままになる。ここで気付いた時点で作り直す
+        String driveFolderId = hasGoogle ? googleAuthService.ensureDriveFolderId(user) : user.getDriveFolderId();
+        result.put("drive_folder_id", driveFolderId);
         return result;
     }
 }

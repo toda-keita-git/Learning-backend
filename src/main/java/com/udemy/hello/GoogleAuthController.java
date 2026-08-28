@@ -36,4 +36,16 @@ public class GoogleAuthController {
         int userId = JwtAuthInterceptor.getVerifiedUserId(request);
         return googleAuthService.refreshAccessToken(userId);
     }
+
+    /**
+     * ログイン中のアカウントにGoogleアカウントを連携する。
+     * 新規ユーザーは作らず、既存の行にGoogle側の情報を書き足すだけなので、
+     * これまでの目標・プラン・メモはそのまま保持される。
+     * app_token（JWT）による本人確認が必須（誰に連携するのかをトークンで決めるため）。
+     */
+    @PostMapping("/link")
+    public Map<String, Object> linkGoogleAccount(HttpServletRequest request, @RequestBody Map<String, String> payload) {
+        int userId = JwtAuthInterceptor.getVerifiedUserId(request);
+        return googleAuthService.linkGoogleAccount(userId, payload.get("code"));
+    }
 }

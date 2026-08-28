@@ -39,4 +39,23 @@ public interface UserMapper {
 
     // Driveアクセストークン再取得用のrefresh_tokenを更新
     void updateGoogleRefreshToken(@Param("id") int id, @Param("googleRefreshToken") String googleRefreshToken);
+
+    // --- アカウント連携（1つのユーザー行にGitHubとGoogleの両方を持たせる） ---
+
+    // 既存ユーザーにGoogleアカウントを連携する（新規ユーザーは作らず、idで指定した行に書き込む）
+    void linkGoogleAccount(@Param("id") int id,
+                           @Param("googleSub") String googleSub,
+                           @Param("driveFolderId") String driveFolderId);
+
+    // 既存ユーザーにGitHubアカウントを連携する（同上）
+    void linkGithubAccount(@Param("id") int id,
+                           @Param("githubLogin") String githubLogin,
+                           @Param("accessToken") String accessToken,
+                           @Param("repoName") String repoName,
+                           @Param("createdRepo") boolean createdRepo);
+
+    // メール・アイコンが未設定の場合だけ埋める（連携時、既にある値を上書きしないため）
+    void fillProfileIfEmpty(@Param("id") int id,
+                            @Param("email") String email,
+                            @Param("avatarUrl") String avatarUrl);
 }

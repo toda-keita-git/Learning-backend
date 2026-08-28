@@ -28,6 +28,18 @@ public class GitHubAuthController {
     }
 
     /**
+     * 保存済みのGitHubアクセストークンを返す。
+     * Googleでログインして後からGitHubを連携した場合、ブラウザ側にGitHubのトークンが
+     * 無いためリポジトリへの添付ができない。Googleの/google/refreshと同じ考え方で、
+     * app_token（JWT）による本人確認のうえサーバー保持分を渡す。
+     */
+    @GetMapping("/token")
+    public Map<String, Object> githubToken(HttpServletRequest request) {
+        int userId = JwtAuthInterceptor.getVerifiedUserId(request);
+        return gitHubAuthService.getStoredGithubToken(userId);
+    }
+
+    /**
      * ログイン中のアカウントにGitHubアカウントを連携する。
      * 新規ユーザーは作らず、既存の行にGitHub側の情報を書き足すだけなので、
      * これまでの目標・プラン・メモはそのまま保持される。

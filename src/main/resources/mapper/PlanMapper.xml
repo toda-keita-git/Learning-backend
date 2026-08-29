@@ -50,6 +50,13 @@
         WHERE id = #{id} AND user_id = #{user_id};
     </update>
 
+    <!-- 進捗率からの自動status遷移専用。title/descriptionには触れない -->
+    <update id="updateStatus">
+        UPDATE plans
+        SET status = #{status}
+        WHERE id = #{id} AND user_id = #{user_id};
+    </update>
+
     <!-- 親の変更（再配置）。ドラッグ確定後・タップでの移動どちらからもこれを呼ぶ -->
     <update id="updateParent">
         UPDATE plans

@@ -48,7 +48,16 @@ public class ProgressService {
 
 		Map<Integer, Double> cache = new HashMap<>();
 		for (Plan plan : plans) {
-			plan.setProgress(computeProgress(plan, childrenByParent, notesByPlan, cache));
+			Double progress = computeProgress(plan, childrenByParent, notesByPlan, cache);
+			plan.setProgress(progress);
+
+			// 進捗率とstatusの不整合（「進捗100%なのに未着手のまま」等）を、
+			// 一覧を返すたびに解消する。derive結果が今の値と同じならDBには触れない
+			String autoStatus = ProgressCalculator.deriveAutoStatus(plan.getStatus(), progress);
+			if (!autoStatus.equals(plan.getStatus())) {
+				planMapper.updateStatus(plan.getId(), autoStatus, userId);
+				plan.setStatus(autoStatus);
+			}
 		}
 		return plans;
 	}

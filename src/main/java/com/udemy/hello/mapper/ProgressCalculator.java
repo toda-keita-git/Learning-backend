@@ -38,4 +38,31 @@ public final class ProgressCalculator {
 		}
 		return nonNull.stream().mapToDouble(Double::doubleValue).average().getAsDouble();
 	}
+
+	/**
+	 * 進捗率から、自動で追随させるべきstatusを求める（販売可否評価レポートで指摘された、
+	 * 「進捗100%なのにstatusが未着手のまま」という矛盾の解消）。
+	 *
+	 * 「done」「suspended」はユーザーが明示的に選んだ状態として扱い、進捗が変化しても
+	 * 自動では変更しない（例: 一部メモの紐付けを外して進捗が下がっても、完了扱いを
+	 * 勝手に取り消さない）。自動で進めるのは「not_started」からの一方向のみ:
+	 *   not_started → in_progress（進捗1%以上）
+	 *   not_started/in_progress → done（進捗100%）
+	 * 対象が無くprogressがnull（"未設定"）の間は、statusをそのまま返す。
+	 */
+	public static String deriveAutoStatus(String status, Double progress) {
+		if ("done".equals(status) || "suspended".equals(status)) {
+			return status;
+		}
+		if (progress == null) {
+			return status;
+		}
+		if (progress >= 100.0) {
+			return "done";
+		}
+		if (progress > 0.0 && "not_started".equals(status)) {
+			return "in_progress";
+		}
+		return status;
+	}
 }

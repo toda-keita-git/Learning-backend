@@ -71,7 +71,13 @@ public class ProgressService {
 		List<Double> values = new ArrayList<>(notesByPlan.getOrDefault(plan.getId(), List.of()));
 		for (Plan child : childrenByParent.getOrDefault(plan.getId(), List.of())) {
 			Double childProgress = computeProgress(child, childrenByParent, notesByPlan, cache);
-			if (childProgress != null) {
+			// メモが1件も無い子プランは「未算出(null)」だが、集計から除外してしまうと
+			// 「分解したアクションプランが手つかずなのに、親の目標が100%＝完了になる」
+			// という実態と食い違う状態になる。分解した以上はやるべき作業なので、
+			// 未算出の子は0%として分母に数える（子を持たない葉自身は従来どおりnull＝未設定）
+			if (childProgress == null) {
+				values.add(0.0);
+			} else {
 				values.add(childProgress);
 			}
 		}

@@ -235,8 +235,16 @@ public class GitHubAuthService {
      * 新規作成は行わない（自動作成される既定のリポジトリとは別に、本人がGitHub上に
      * 既に持っているリポジトリを選ぶための機能）。
      */
-    public String updateUserRepo(String githubLogin, String repoName) {
-        User user = userMapper.findByGithubLogin(githubLogin);
+    /**
+     * 添付先として使うリポジトリ名を更新する。
+     *
+     * 以前はgithub_loginで利用者を引いていたが、Googleでログインした場合のJWTには
+     * github_loginクレームにメールアドレスが入るため、usersテーブルの誰にも一致せず
+     * 「ユーザーが見つかりません」で500になっていた（GitHubを連携済みでも同じ）。
+     * user_idはどちらのログイン経路でも確実に本人を指すので、こちらで引く。
+     */
+    public String updateUserRepo(int userId, String repoName) {
+        User user = userMapper.findById(userId);
         if (user == null) {
             throw new RuntimeException("ユーザーが見つかりません。");
         }

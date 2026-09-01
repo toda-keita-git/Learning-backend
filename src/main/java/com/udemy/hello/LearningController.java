@@ -54,15 +54,16 @@ public class LearningController {
     }
 
     // メモの添付先として使うリポジトリを、本人の既存リポジトリに切り替える
-    // （新規作成は行わない。githubLoginはJWTで検証済みのものを使う）
+    // （新規作成は行わない。利用者の特定にはJWTで検証済みのuser_idを使う。
+    //   github_loginクレームはGoogleログイン時にメールアドレスが入るため使えない）
     @PostMapping("/user_repo_select")
     public ResponseEntity<?> userRepoSelect(@RequestBody Map<String, String> body, HttpServletRequest request) {
-        String githubLogin = JwtAuthInterceptor.getVerifiedGithubLogin(request);
+        int userId = JwtAuthInterceptor.getVerifiedUserId(request);
         String repoName = body.get("repo_name");
         if (repoName == null || repoName.isBlank()) {
             return ResponseEntity.badRequest().body("リポジトリ名を指定してください。");
         }
-        String updated = gitHubAuthService.updateUserRepo(githubLogin, repoName.trim());
+        String updated = gitHubAuthService.updateUserRepo(userId, repoName.trim());
         return ResponseEntity.ok(Map.of("repo_name", updated));
     }
 

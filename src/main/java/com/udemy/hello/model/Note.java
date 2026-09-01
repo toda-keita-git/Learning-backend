@@ -21,6 +21,8 @@ public class Note {
 	private Integer category_id;
 	// nullなら「繰り返しなし」。設定時は「今日の復習」タブでn日おきのやることとして表示される（頻度は自由設定）
 	private Integer review_interval_days;
+	// trueなら「今日やること・次にやる事」画面の一番下に横断的に表示される
+	private boolean important;
 	private Timestamp created_at;
 	private int delete_flg;
 	private Integer user_id;

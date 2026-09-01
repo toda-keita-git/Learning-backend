@@ -37,7 +37,8 @@ public class LearningController {
     // お問い合わせ管理など、管理者専用の機能でのみ使用する
     private static final int ADMIN_USER_ID = 1;
 
-    // フリープランの上限（Proプランとの差別化のための制限。既存のカテゴリー・タグは削除されず、新規作成だけがブロックされる）
+    // 登録できる件数の上限（DBの肥大化を防ぐための制限。既存のカテゴリー・タグは削除されず、新規作成だけがブロックされる）。
+    // 変更する場合は、利用者に案内しているPricingPlanDialog.tsxのLIMITSも必ず合わせること
     private static final int FREE_CATEGORY_LIMIT = 20;
 
     private final LearningApplication learningApplication;
@@ -72,7 +73,7 @@ public class LearningController {
         // フリープランの上限チェック（既存のカテゴリーは消さず、新規作成だけをブロックする）
         if (learningService.category_count(userId) >= FREE_CATEGORY_LIMIT) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                .body("フリープランのカテゴリー上限（" + FREE_CATEGORY_LIMIT + "件）に達しています。Proプランのご案内をご確認ください。");
+                .body("カテゴリーの登録上限（" + FREE_CATEGORY_LIMIT + "件）に達しています。使っていないカテゴリーを削除すると、新しく追加できます。");
         }
         learningService.category_insert(tag.getName(), userId);
         return ResponseEntity.ok("inserted");
@@ -122,7 +123,7 @@ public class LearningController {
             // フリープランの上限チェック（既存のタグは消さず、新規作成だけをブロックする）
             if (learningService.tag_count(userId) >= LearningService.FREE_TAG_LIMIT) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body("フリープランのタグ上限（" + LearningService.FREE_TAG_LIMIT + "件）に達しています。Proプランのご案内をご確認ください。");
+                    .body("タグの登録上限（" + LearningService.FREE_TAG_LIMIT + "件）に達しています。使っていないタグを削除すると、新しく追加できます。");
             }
             learningService.tag_insert(tag.getName(), userId);
         }

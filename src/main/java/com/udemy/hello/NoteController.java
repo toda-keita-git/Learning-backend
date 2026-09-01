@@ -29,7 +29,8 @@ public class NoteController {
 	private static final Set<String> VALID_TYPES = Set.of("learning", "task", "normal");
 	private static final Set<String> VALID_ATTACHMENT_KINDS = Set.of("image", "code");
 
-	// フリープランの登録上限（旧learningsと同じ100件。既存のメモは削除されず、新規登録だけがブロックされる）
+	// メモの登録上限（旧learningsと同じ100件。既存のメモは削除されず、新規登録だけがブロックされる）。
+	// 変更する場合は、利用者に案内しているPricingPlanDialog.tsxのLIMITSも必ず合わせること
 	private static final int FREE_PLAN_LIMIT = 100;
 
 	@Autowired
@@ -51,7 +52,7 @@ public class NoteController {
 		int userId = JwtAuthInterceptor.getVerifiedUserId(request);
 		if (noteService.count(userId) >= FREE_PLAN_LIMIT) {
 			return ResponseEntity.status(HttpStatus.FORBIDDEN)
-				.body("フリープランの登録上限（" + FREE_PLAN_LIMIT + "件）に達しています。Proプランのご案内をご確認ください。");
+				.body("メモの登録上限（" + FREE_PLAN_LIMIT + "件）に達しています。不要なメモを削除すると、新しく作成できます。");
 		}
 		note.setUser_id(userId);
 		note.setCreated_at(new Timestamp(System.currentTimeMillis()));

@@ -57,6 +57,19 @@
         WHERE id = #{id} AND user_id = #{user_id};
     </update>
 
+    <!-- 同じstatusへ変える分をまとめて1回で更新する（/plans取得のたびに
+         プラン件数ぶんUPDATEが飛ぶのを避けるため）。idsが空の場合は
+         ProgressService側で呼ばないため、ここでは空チェックをしない -->
+    <update id="updateStatusBulk">
+        UPDATE plans
+        SET status = #{status}
+        WHERE user_id = #{user_id}
+          AND id IN
+        <foreach item="id" collection="ids" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </update>
+
     <!-- 親の変更（再配置）。ドラッグ確定後・タップでの移動どちらからもこれを呼ぶ -->
     <update id="updateParent">
         UPDATE plans

@@ -15,6 +15,10 @@ import com.udemy.hello.model.Plan;
  * プランの達成率を、末端（葉）から根に向かって再帰的に算出する（DBには保持しない）。
  * このプランに直接リンクされたメモの実効進捗と、直属の子プランの達成率を
  * 区別せずまとめて単純平均する（仕様書「進捗集計ロジック」章）。
+ *
+ * メモが1件も無い子プランは達成率が未算出になるが、平均から外すと
+ * 「分解したアクションプランが手つかずなのに親の目標が100%」になってしまうため、
+ * 0%として分母に数える。子を持たない葉プラン自身は未算出（＝未設定）のまま。
  */
 @Service
 public class ProgressService {
@@ -47,17 +51,25 @@ public class ProgressService {
 		}
 
 		Map<Integer, Double> cache = new HashMap<>();
+		// 進捗率とstatusの不整合（「進捗100%なのに未着手のまま」等）を、
+		// 一覧を返すたびに解消する。derive結果が今の値と同じならDBには触れない。
+		//
+		// 以前はここでプラン1件ごとにUPDATEを投げていたため、プランが増えるほど
+		// 一覧取得のたびに発行クエリ数が膨らんでいた。変更後のstatusごとに
+		// まとめて、実際に変わった分だけUPDATEを1回ずつ実行する
+		Map<String, List<Integer>> idsByNewStatus = new HashMap<>();
 		for (Plan plan : plans) {
 			Double progress = computeProgress(plan, childrenByParent, notesByPlan, cache);
 			plan.setProgress(progress);
 
-			// 進捗率とstatusの不整合（「進捗100%なのに未着手のまま」等）を、
-			// 一覧を返すたびに解消する。derive結果が今の値と同じならDBには触れない
 			String autoStatus = ProgressCalculator.deriveAutoStatus(plan.getStatus(), progress);
 			if (!autoStatus.equals(plan.getStatus())) {
-				planMapper.updateStatus(plan.getId(), autoStatus, userId);
+				idsByNewStatus.computeIfAbsent(autoStatus, k -> new ArrayList<>()).add(plan.getId());
 				plan.setStatus(autoStatus);
 			}
+		}
+		for (Map.Entry<String, List<Integer>> entry : idsByNewStatus.entrySet()) {
+			planMapper.updateStatusBulk(entry.getValue(), entry.getKey(), userId);
 		}
 		return plans;
 	}

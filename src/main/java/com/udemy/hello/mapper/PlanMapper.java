@@ -18,6 +18,10 @@ public interface PlanMapper {
 	// 進捗率からの自動status遷移専用（ProgressServiceが/plans取得のたびに呼ぶ）。
 	// title/descriptionは含めず、statusだけを更新する
 	int updateStatus(@Param("id") int id, @Param("status") String status, @Param("user_id") int user_id);
+	// 上のupdateStatusを同じstatusの分だけまとめて実行する版。/plans取得のたびに
+	// プラン件数ぶんUPDATEが飛ぶのを避けるため、ProgressServiceはこちらを使う
+	int updateStatusBulk(@Param("ids") java.util.List<Integer> ids, @Param("status") String status,
+			@Param("user_id") int user_id);
 	// 親の変更（＝再配置）。循環チェックはPlanServiceがJava側で行ってから呼ぶ
 	int updateParent(@Param("id") int id, @Param("parent_id") Integer parent_id, @Param("sort_order") int sort_order, @Param("user_id") int user_id);
 	int updateSortOrder(@Param("id") int id, @Param("sort_order") int sort_order, @Param("user_id") int user_id);

@@ -126,6 +126,11 @@ public class NoteService {
 		return noteMapper.delete(id, userId);
 	}
 
+	// アカウントデータの全削除用（アカウント自体は残す）
+	public void deleteAllForUser(int userId) {
+		noteMapper.deleteAllForUser(userId);
+	}
+
 	public int toggleTodo(int todoItemId, boolean checked, int userId) {
 		return noteMapper.updateTodoItemChecked(todoItemId, checked, userId);
 	}

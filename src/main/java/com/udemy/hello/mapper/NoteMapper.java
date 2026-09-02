@@ -21,6 +21,8 @@ public interface NoteMapper {
 	int update(Note note);
 	// 戻り値は削除件数。id+user_idの両方が一致した場合のみ1件削除される（本人以外は0件のまま）
 	int delete(@Param("id") int id, @Param("user_id") int user_id);
+	// アカウントデータの全削除（アカウント自体は残す）で使う。本人の未削除メモを一括で論理削除する
+	int deleteAllForUser(@Param("user_id") int user_id);
 
 	// 本人の全メモに紐づくtodo項目をまとめて取得し、Note組み立て時にnote_idでグルーピングする
 	List<NoteTodoItem> findTodoItemsByUser(@Param("user_id") int user_id);

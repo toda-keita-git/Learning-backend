@@ -90,11 +90,16 @@ docker build -t learning-backend .
 docker run -p 8080:8080 --env-file .env learning-backend
 ```
 
-既存のデータベースへ期限機能を追加する場合は、デプロイ前に次の差分SQLを実行してください。
+既存のNeonデータベースへ期限機能を追加する場合は、デプロイ前に次の差分SQLを実行してください。
+Neon Console の **Connect** から取得した Direct connection の接続文字列
+（`postgresql://...` 形式。アプリ用の `jdbc:postgresql://...` 形式ではありません）を使います。
 
 ```bash
-psql "$DB_URL" -f src/main/resources/db/plan_deadline_schema.sql
+psql "$NEON_DATABASE_URL" -v ON_ERROR_STOP=1 -f src/main/resources/db/plan_deadline_schema.sql
 ```
+
+または Neon Console の SQL Editor で `plan_deadline_schema.sql` の内容を実行できます。
+実行前に、本番で使用しているプロジェクト・ブランチ・データベースが選択されていることを確認してください。
 
 ## 💡 制作の背景
 

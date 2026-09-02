@@ -9,6 +9,8 @@
         <result property="title" column="title" />
         <result property="description" column="description" />
         <result property="status" column="status" />
+        <result property="start_date" column="start_date" />
+        <result property="due_date" column="due_date" />
         <result property="sort_order" column="sort_order" />
         <result property="created_at" column="created_at" />
         <result property="delete_flg" column="delete_flg" />
@@ -36,9 +38,9 @@
 
     <insert id="insert" useGeneratedKeys="true" keyProperty="id">
         INSERT INTO plans
-        (parent_id, title, description, status, sort_order, created_at, user_id)
+        (parent_id, title, description, status, start_date, due_date, sort_order, created_at, user_id)
         VALUES
-        (#{parent_id}, #{title}, #{description}, #{status}, #{sort_order}, #{created_at}, #{user_id});
+        (#{parent_id}, #{title}, #{description}, #{status}, #{start_date}, #{due_date}, #{sort_order}, #{created_at}, #{user_id});
     </insert>
 
     <!-- WHERE に user_id も含めることで、本人が作成したプラン以外は更新されない（0件のまま） -->
@@ -46,7 +48,9 @@
         UPDATE plans
         SET title = #{title},
             description = #{description},
-            status = #{status}
+            status = #{status},
+            start_date = #{start_date},
+            due_date = #{due_date}
         WHERE id = #{id} AND user_id = #{user_id};
     </update>
 

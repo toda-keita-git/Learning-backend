@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
 
 import com.udemy.hello.Bean.PlanReorderItem;
 import com.udemy.hello.mapper.PlanService;
@@ -43,6 +44,7 @@ public class PlanController {
 	// 戻り値のidは、ドラッグでメモを「新しいプランとして保存」した直後にそのままlink APIへ渡すために使う
 	@PostMapping("/plan_insert")
 	public ResponseEntity<Map<String, Integer>> plan_insert(@RequestBody Plan plan, HttpServletRequest request) {
+		validateDates(plan);
 		int userId = JwtAuthInterceptor.getVerifiedUserId(request);
 		plan.setUser_id(userId);
 		if (plan.getStatus() == null || plan.getStatus().isBlank()) {
@@ -55,6 +57,7 @@ public class PlanController {
 
 	@PostMapping("/plan_update/{id}")
 	public ResponseEntity<String> plan_update(@PathVariable("id") int id, @RequestBody Plan plan, HttpServletRequest request) {
+		validateDates(plan);
 		int userId = JwtAuthInterceptor.getVerifiedUserId(request);
 		plan.setId(id);
 		plan.setUser_id(userId);
@@ -63,6 +66,13 @@ public class PlanController {
 			return ResponseEntity.status(HttpStatus.FORBIDDEN).body("このプランを編集する権限がありません。");
 		}
 		return ResponseEntity.ok("updated");
+	}
+
+	private void validateDates(Plan plan) {
+		if (plan.getStart_date() != null && plan.getDue_date() != null
+				&& plan.getDue_date().isBefore(plan.getStart_date())) {
+			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "期限日は開始日以降に設定してください。");
+		}
 	}
 
 	// 親の変更（＝再配置）。ドラッグでの移動・タップでの移動どちらもここを呼ぶ。body: {parent_id}（ルート化する場合はnull）

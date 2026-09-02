@@ -1,6 +1,7 @@
 package com.udemy.hello.model;
 
 import java.sql.Timestamp;
+import java.time.LocalDate;
 
 import lombok.Data;
 
@@ -16,6 +17,8 @@ public class Plan {
 	private String title;
 	private String description;
 	private String status; // not_started / in_progress / done / suspended
+	private LocalDate start_date; // 任意。取り組み開始日
+	private LocalDate due_date; // 任意。目標・アクションプランの期限日
 	private int sort_order; // 兄弟内の表示順。ドラッグ&ドロップで書き換わる
 	private Timestamp created_at;
 	private int delete_flg;

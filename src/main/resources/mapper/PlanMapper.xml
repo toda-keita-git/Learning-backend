@@ -95,4 +95,11 @@
         WHERE id = #{id} AND user_id = #{user_id};
     </update>
 
+    <!-- アカウントデータの全削除用。本人の未削除プランをまとめて論理削除する -->
+    <update id="deleteAllForUser">
+        UPDATE plans
+        SET delete_flg = 1
+        WHERE user_id = #{user_id} AND delete_flg = 0;
+    </update>
+
 </mapper>

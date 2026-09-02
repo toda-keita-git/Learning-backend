@@ -1,11 +1,13 @@
 package com.udemy.hello;
 
+import com.udemy.hello.mapper.AccountService;
 import com.udemy.hello.mapper.GoogleAuthService;
 import com.udemy.hello.mapper.UserMapper;
 import com.udemy.hello.model.User;
 import com.udemy.hello.security.JwtAuthInterceptor;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
@@ -25,6 +27,9 @@ public class AccountController {
 
     @Autowired
     private GoogleAuthService googleAuthService;
+
+    @Autowired
+    private AccountService accountService;
 
     @GetMapping("/me")
     public Map<String, Object> me(HttpServletRequest request) {
@@ -52,5 +57,14 @@ public class AccountController {
         String driveFolderId = hasGoogle ? googleAuthService.ensureDriveFolderId(user) : user.getDriveFolderId();
         result.put("drive_folder_id", driveFolderId);
         return result;
+    }
+
+    // 「アカウントデータの削除」。目標・プラン・メモを全削除し、アカウント自体（ログイン・連携情報）は残す。
+    // 論理削除のため、間違えて押した場合の物理的な巻き戻しはできないが、DB操作自体は取り消し可能な形にしてある
+    @PostMapping("/account_data_delete")
+    public ResponseEntity<String> accountDataDelete(HttpServletRequest request) {
+        int userId = JwtAuthInterceptor.getVerifiedUserId(request);
+        accountService.deleteAllUserData(userId);
+        return ResponseEntity.ok("deleted");
     }
 }

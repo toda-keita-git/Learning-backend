@@ -76,4 +76,9 @@ public class PlanService {
 		}
 		return planMapper.delete(id, userId);
 	}
+
+	// アカウントデータの全削除用（アカウント自体は残す）
+	public void deleteAllForUser(int userId) {
+		planMapper.deleteAllForUser(userId);
+	}
 }

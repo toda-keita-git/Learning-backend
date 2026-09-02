@@ -116,6 +116,12 @@ public class GuestImportService {
 		plan.setDescription(guestPlan.getDescription());
 		String status = guestPlan.getStatus();
 		plan.setStatus(status == null || status.isBlank() ? "not_started" : status);
+		if (guestPlan.getStart_date() != null && guestPlan.getDue_date() != null
+				&& guestPlan.getDue_date().isBefore(guestPlan.getStart_date())) {
+			throw new IllegalArgumentException("期限日は開始日以降に設定してください。");
+		}
+		plan.setStart_date(guestPlan.getStart_date());
+		plan.setDue_date(guestPlan.getDue_date());
 		plan.setUser_id(userId);
 		plan.setCreated_at(new Timestamp(System.currentTimeMillis()));
 		planService.insert(plan);

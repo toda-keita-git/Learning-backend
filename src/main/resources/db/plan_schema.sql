@@ -17,11 +17,14 @@ CREATE TABLE IF NOT EXISTS plans (
     title VARCHAR(255) NOT NULL,
     description TEXT,
     status VARCHAR(20) NOT NULL DEFAULT 'not_started', -- not_started / in_progress / done / suspended
+    start_date DATE,
+    due_date DATE,
     sort_order INTEGER NOT NULL DEFAULT 0,
     delete_flg INTEGER NOT NULL DEFAULT 0,
     created_at TIMESTAMP NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS idx_plans_parent_id ON plans(parent_id);
+CREATE INDEX IF NOT EXISTS idx_plans_user_due_date ON plans(user_id, due_date) WHERE delete_flg = 0;
 
 CREATE TABLE IF NOT EXISTS note_plan_links (
     id SERIAL PRIMARY KEY,

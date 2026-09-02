@@ -15,6 +15,7 @@ Java / Spring Boot で実装し、プラン・メモ（学習用／タスク用�
 ## 📌 担当している役割
 
 - **プラン の CRUD API**（`PlanController`）：親を持たないプランは目標、親を持つプランはアクションプランとしてUI側で表示が切り替わるだけで、実体は同じ1テーブル
+- **開始日・期限日の管理**：目標とアクションプランに任意の日付を設定し、開始日より前の期限はAPIで拒否
 - **プランの再配置（親の変更）**：ドラッグ・タップどちらの操作からも呼べる `plan_reparent` で、循環参照にならないかサーバー側で検証してから更新
 - **進捗の再帰的な自動集計**：直属メモの実効進捗と子プランの達成率をまとめて平均し、末端から根まで積み上げる（`ProgressService`）
 - **メモ の CRUD API**（`NoteController`）：プランに従属しない独立したエンティティとして作成・編集・削除
@@ -65,6 +66,7 @@ src/main/java/com/udemy/hello/
 src/main/resources/
 ├── application.properties       … 設定（秘密情報は環境変数から注入）
 ├── db/plan_schema.sql           … v0.3用テーブルのDDL・goals/action_plans統合の移行スクリプト
+├── db/plan_deadline_schema.sql  … 既存DBへ開始日・期限日を追加する差分SQL
 ├── db/goal_schema.sql           … v0.2時点のテーブル定義（参照用に保持）
 └── mapper/*.xml                 … MyBatis の SQL 定義
 
@@ -87,6 +89,17 @@ Docker で動かす場合：
 docker build -t learning-backend .
 docker run -p 8080:8080 --env-file .env learning-backend
 ```
+
+既存のNeonデータベースへ期限機能を追加する場合は、デプロイ前に次の差分SQLを実行してください。
+Neon Console の **Connect** から取得した Direct connection の接続文字列
+（`postgresql://...` 形式。アプリ用の `jdbc:postgresql://...` 形式ではありません）を使います。
+
+```bash
+psql "$NEON_DATABASE_URL" -v ON_ERROR_STOP=1 -f src/main/resources/db/plan_deadline_schema.sql
+```
+
+または Neon Console の SQL Editor で `plan_deadline_schema.sql` の内容を実行できます。
+実行前に、本番で使用しているプロジェクト・ブランチ・データベースが選択されていることを確認してください。
 
 ## 💡 制作の背景
 

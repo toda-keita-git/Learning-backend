@@ -15,9 +15,11 @@ import org.springframework.web.bind.annotation.CrossOrigin;
 
 import com.udemy.hello.mapper.LearningService;
 import com.udemy.hello.mapper.GitHubAuthService;
+import com.udemy.hello.mapper.UserMapper;
 import com.udemy.hello.model.categories;
 import com.udemy.hello.model.tags;
 import com.udemy.hello.model.PlanInterest;
+import com.udemy.hello.model.User;
 import com.udemy.hello.model.Inquiry;
 import com.udemy.hello.security.JwtAuthInterceptor;
 
@@ -48,6 +50,9 @@ public class LearningController {
 
     @Autowired
     GitHubAuthService gitHubAuthService;
+
+    @Autowired
+    UserMapper userMapper;
 
     LearningController(LearningApplication learningApplication) {
         this.learningApplication = learningApplication;
@@ -166,13 +171,19 @@ public class LearningController {
     }
 
     // Proプラン「通知を希望する」の登録（同じユーザーが複数回押しても1件のみ記録される）
+    //
+    // github_loginは、JWTのクレームではなくusersテーブルの値を使う。
+    // JWTのgithub_loginクレームはGoogleログイン時にメールアドレスが入る流用のため
+    // （GoogleAuthServiceのコメント参照）、そのまま記録するとgithub_loginという名前の
+    // 列にメールアドレスが混ざる。usersの値ならGoogleのみの利用者ではNULLになり、
+    // 列名と中身が食い違わない。連絡先が要る場合はuser_idからusersを引けばよい
     @PostMapping("/plan_interest_register")
     public void plan_interest_register(HttpServletRequest request){
         int userId = JwtAuthInterceptor.getVerifiedUserId(request);
-        String githubLogin = JwtAuthInterceptor.getVerifiedGithubLogin(request);
+        User user = userMapper.findById(userId);
         PlanInterest planInterest = new PlanInterest();
         planInterest.setUser_id(userId);
-        planInterest.setGithub_login(githubLogin);
+        planInterest.setGithub_login(user == null ? null : user.getGithubLogin());
         learningService.plan_interest_insert(planInterest);
     }
 

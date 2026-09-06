@@ -262,6 +262,27 @@ public class GoogleAuthService {
         }
     }
 
+    /**
+     * アカウント削除時、保存しているGoogleのrefresh_tokenをGoogle側でも失効させる。
+     * refresh_tokenを渡すと、それを使って発行されたaccess_tokenも合わせて無効になる。
+     * ベストエフォート：失敗してもアカウント削除自体は続行させたいので、ここで握りつぶす
+     */
+    public void revokeToken(String refreshToken) {
+        if (refreshToken == null || refreshToken.isBlank()) {
+            return;
+        }
+        try {
+            MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
+            params.add("token", refreshToken);
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+            restTemplate.postForEntity("https://oauth2.googleapis.com/revoke", new HttpEntity<>(params, headers), String.class);
+            logger.info("✅ Googleのトークンを失効させました。");
+        } catch (Exception e) {
+            logger.warn("Googleのトークン失効に失敗しました（アカウント削除は続行します）: {}", e.getMessage());
+        }
+    }
+
     private String createUserDriveFolder(String accessToken, String sub) {
         HttpHeaders headers = new HttpHeaders();
         headers.setBearerAuth(accessToken);

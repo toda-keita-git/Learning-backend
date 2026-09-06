@@ -58,4 +58,8 @@ public interface UserMapper {
     void fillProfileIfEmpty(@Param("id") int id,
                             @Param("email") String email,
                             @Param("avatarUrl") String avatarUrl);
+
+    // アカウント自体の削除（論理削除＋連携情報の消去）。
+    // 戻り値の更新件数は呼び出し側では見ていない（対象が既に居ない＝0件でも実害が無いため）
+    int deleteAccount(@Param("id") int id);
 }

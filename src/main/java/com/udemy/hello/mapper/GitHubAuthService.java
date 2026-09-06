@@ -282,6 +282,29 @@ public class GitHubAuthService {
     }
 
     /**
+     * アカウント削除時、保存しているGitHubのアクセストークンをGitHub側でも失効させる。
+     * DBから消すだけでは、漏えいした場合などにトークン自体は有効なまま残ってしまうため。
+     * ベストエフォート：失敗してもアカウント削除自体は続行させたいので、ここで握りつぶす
+     */
+    public void revokeToken(String accessToken) {
+        if (accessToken == null || accessToken.isBlank()) {
+            return;
+        }
+        try {
+            HttpHeaders headers = new HttpHeaders();
+            headers.setBasicAuth(clientId, clientSecret);
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            Map<String, String> body = Map.of("access_token", accessToken);
+            restTemplate.exchange(
+                    "https://api.github.com/applications/" + clientId + "/token",
+                    HttpMethod.DELETE, new HttpEntity<>(body, headers), Void.class);
+            logger.info("✅ GitHubのアクセストークンを失効させました。");
+        } catch (Exception e) {
+            logger.warn("GitHubのアクセストークン失効に失敗しました（アカウント削除は続行します）: {}", e.getMessage());
+        }
+    }
+
+    /**
      * GitHub OAuth コード → アクセストークン変換
      */
     private String getAccessToken(String code) {

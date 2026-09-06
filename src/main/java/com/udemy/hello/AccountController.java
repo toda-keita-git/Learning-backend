@@ -67,4 +67,14 @@ public class AccountController {
         accountService.deleteAllUserData(userId);
         return ResponseEntity.ok("deleted");
     }
+
+    // 「アカウント自体の削除」。目標・プラン・メモに加え、GitHub/Google連携（トークン・
+    // ログインに使うidそのもの）も消す。以降、このアカウントで使っていたJWTは
+    // findByIdやfindByGithubLogin等がこのユーザーを見つけられなくなるため実質的に失効する
+    @PostMapping("/account_delete")
+    public ResponseEntity<String> accountDelete(HttpServletRequest request) {
+        int userId = JwtAuthInterceptor.getVerifiedUserId(request);
+        accountService.deleteAccount(userId);
+        return ResponseEntity.ok("deleted");
+    }
 }

@@ -179,4 +179,25 @@
         WHERE id = #{id};
     </update>
 
+    <!-- ==========================
+         アカウント自体の削除。findByGithubLogin/findByGoogleSub/findByIdは
+         いずれも delete_flg = FALSE の行しか返さないため、これだけでログイン・
+         本人確認の対象から外れる。あわせてGitHub/Googleの連携情報（トークン・識別子）や
+         プロフィールも消し、同じgithub_login/googleでの再登録を妨げないようにする
+         ========================== -->
+    <update id="deleteAccount">
+        UPDATE users
+        SET delete_flg = TRUE,
+            github_login = NULL,
+            access_token = NULL,
+            google_sub = NULL,
+            google_refresh_token = NULL,
+            drive_folder_id = NULL,
+            repo_name = NULL,
+            created_repo = FALSE,
+            email = NULL,
+            avatar_url = NULL
+        WHERE id = #{id};
+    </update>
+
 </mapper>

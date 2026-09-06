@@ -151,7 +151,9 @@
         WHERE note_id = #{note_id};
     </delete>
 
-    <!-- 本人の削除されていないメモ×削除されていないプランのリンクだけを返す -->
+    <!-- 本人の削除されていないメモ×本人の削除されていないプランのリンクだけを返す。
+         plans側もuser_idを見るのは、insertLinkの検証より前に作られた不整合データが
+         万一残っていても、他ユーザーのプランを指すリンクを返さないようにするため -->
     <select id="findLinksByUser" resultMap="NotePlanLink">
         SELECT note_plan_links.note_id, note_plan_links.plan_id
         FROM note_plan_links
@@ -159,15 +161,18 @@
         INNER JOIN plans ON plans.id = note_plan_links.plan_id
         WHERE notes.user_id = #{user_id}
           AND notes.delete_flg = 0
+          AND plans.user_id = #{user_id}
           AND plans.delete_flg = 0
         ORDER BY note_plan_links.note_id ASC;
     </select>
 
-    <!-- 本人のメモにだけリンクを追加できる（他人のメモへは0件のまま）。同じ組み合わせの重複は無視 -->
+    <!-- 本人のメモと本人のプランの組み合わせにだけリンクを追加できる（どちらかが他人のものなら0件のまま）。
+         同じ組み合わせの重複は無視 -->
     <insert id="insertLink">
         INSERT INTO note_plan_links (note_id, plan_id)
         SELECT #{note_id}, #{plan_id}
         WHERE EXISTS (SELECT 1 FROM notes WHERE id = #{note_id} AND user_id = #{user_id})
+          AND EXISTS (SELECT 1 FROM plans WHERE id = #{plan_id} AND user_id = #{user_id} AND delete_flg = 0)
         ON CONFLICT (note_id, plan_id) DO NOTHING;
     </insert>
 

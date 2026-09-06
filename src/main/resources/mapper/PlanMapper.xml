@@ -102,4 +102,11 @@
         WHERE user_id = #{user_id} AND delete_flg = 0;
     </update>
 
+    <!-- 新規作成・再配置時、指定された親idが本人自身のプランかどうかの確認用 -->
+    <select id="existsForUser" resultType="int">
+        SELECT COUNT(*)
+        FROM plans
+        WHERE id = #{id} AND user_id = #{user_id} AND delete_flg = 0;
+    </select>
+
 </mapper>

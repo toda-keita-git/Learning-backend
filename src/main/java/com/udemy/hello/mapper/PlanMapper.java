@@ -27,6 +27,8 @@ public interface PlanMapper {
 	int updateSortOrder(@Param("id") int id, @Param("sort_order") int sort_order, @Param("user_id") int user_id);
 	// 戻り値は削除件数。id+user_idの両方が一致した場合のみ1件削除される（本人以外は0件のまま）
 	int delete(@Param("id") int id, @Param("user_id") int user_id);
+	// 親プランに指定しようとしているidが、本人自身の（削除されていない）プランかどうかの確認用
+	int existsForUser(@Param("id") int id, @Param("user_id") int user_id);
 	// アカウントデータの全削除（アカウント自体は残す）で使う。本人の未削除プランを一括で論理削除する
 	int deleteAllForUser(@Param("user_id") int user_id);
 }

@@ -6,7 +6,9 @@ import java.util.Map;
 import java.util.Objects;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 import com.udemy.hello.Bean.PlanReorderItem;
 import com.udemy.hello.model.Plan;
@@ -17,8 +19,13 @@ public class PlanService {
 	@Autowired
 	private PlanMapper planMapper;
 
-	// 新規作成時の表示順は、同じ親を持つ既存プランの末尾に自動採番する
+	// 新規作成時の表示順は、同じ親を持つ既存プランの末尾に自動採番する。
+	// parent_idが指定されている場合、それが本人自身のプランであることを確認する
+	// （未確認だと、他ユーザーのプランidを親として直接指定できてしまう）
 	public int insert(Plan plan) {
+		if (plan.getParent_id() != null && planMapper.existsForUser(plan.getParent_id(), plan.getUser_id()) == 0) {
+			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "親プランが不正です。");
+		}
 		int next = planMapper.nextSortOrder(plan.getParent_id(), plan.getUser_id());
 		plan.setSort_order(next);
 		return planMapper.insert(plan);
@@ -28,7 +35,9 @@ public class PlanService {
 		return planMapper.update(plan);
 	}
 
-	// 親の変更（再配置）。newParentIdが自分自身や自分の子孫にならないことを確認してから更新する
+	// 親の変更（再配置）。newParentIdが自分自身や自分の子孫にならないこと、
+	// そもそも本人自身のプランであることを確認してから更新する
+	// （未確認だと、他ユーザーのプランidを親として直接指定できてしまう）
 	public boolean reparent(int id, Integer newParentId, int userId) {
 		if (newParentId != null) {
 			if (newParentId == id) {
@@ -40,6 +49,9 @@ public class PlanService {
 			Map<Integer, Integer> parentById = new HashMap<>();
 			for (Plan p : all) {
 				parentById.put(p.getId(), p.getParent_id());
+			}
+			if (!parentById.containsKey(newParentId)) {
+				return false; // 本人自身のプラン一覧に無いid（他ユーザーのプラン等）は親にできない
 			}
 			Integer cursor = newParentId;
 			while (cursor != null) {

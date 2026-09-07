@@ -171,7 +171,7 @@
     <insert id="insertLink">
         INSERT INTO note_plan_links (note_id, plan_id)
         SELECT #{note_id}, #{plan_id}
-        WHERE EXISTS (SELECT 1 FROM notes WHERE id = #{note_id} AND user_id = #{user_id})
+        WHERE EXISTS (SELECT 1 FROM notes WHERE id = #{note_id} AND user_id = #{user_id} AND delete_flg = 0)
           AND EXISTS (SELECT 1 FROM plans WHERE id = #{plan_id} AND user_id = #{user_id} AND delete_flg = 0)
         ON CONFLICT (note_id, plan_id) DO NOTHING;
     </insert>

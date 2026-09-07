@@ -98,6 +98,13 @@
         WHERE user_id = #{user_id} AND delete_flg = 0;
     </update>
 
+    <!-- 他機能（時間割等）からメモを紐づける際、本人自身の（削除されていない）メモかどうかの確認用 -->
+    <select id="existsForUser" resultType="int">
+        SELECT COUNT(*)
+        FROM notes
+        WHERE id = #{id} AND user_id = #{user_id} AND delete_flg = 0;
+    </select>
+
     <!-- 本人の全メモに紐づくtodo項目。Note組み立て時にnote_idでグルーピングする -->
     <select id="findTodoItemsByUser" resultMap="NoteTodoItem">
         SELECT note_todo_items.*

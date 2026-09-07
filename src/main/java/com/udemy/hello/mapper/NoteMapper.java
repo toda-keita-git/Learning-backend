@@ -23,6 +23,8 @@ public interface NoteMapper {
 	int delete(@Param("id") int id, @Param("user_id") int user_id);
 	// アカウントデータの全削除（アカウント自体は残す）で使う。本人の未削除メモを一括で論理削除する
 	int deleteAllForUser(@Param("user_id") int user_id);
+	// 他機能（時間割等）からメモを紐づける際、本人自身の（削除されていない）メモかどうかの確認用
+	int existsForUser(@Param("id") int id, @Param("user_id") int user_id);
 
 	// 本人の全メモに紐づくtodo項目をまとめて取得し、Note組み立て時にnote_idでグルーピングする
 	List<NoteTodoItem> findTodoItemsByUser(@Param("user_id") int user_id);

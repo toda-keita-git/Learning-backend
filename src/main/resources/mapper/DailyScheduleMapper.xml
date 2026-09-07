@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.udemy.hello.mapper.DailyScheduleMapper">
+
+    <resultMap id="DailyScheduleItem" type="DailyScheduleItem">
+        <id property="id" column="id" />
+        <result property="user_id" column="user_id" />
+        <result property="schedule_date" column="schedule_date" />
+        <result property="start_minute" column="start_minute" />
+        <result property="end_minute" column="end_minute" />
+        <result property="timezone" column="timezone" />
+        <result property="source_type" column="source_type" />
+        <result property="source_id" column="source_id" />
+        <result property="title_snapshot" column="title_snapshot" />
+        <result property="status" column="status" />
+        <result property="color_key" column="color_key" />
+        <result property="delete_flg" column="delete_flg" />
+        <result property="created_at" column="created_at" />
+        <result property="updated_at" column="updated_at" />
+    </resultMap>
+
+    <!-- 指定日の、本人の（削除されていない）予定を開始時刻順に返す -->
+    <select id="findByUserAndDate" resultMap="DailyScheduleItem">
+        SELECT *
+        FROM daily_schedule_items
+        WHERE user_id = #{user_id}
+          AND schedule_date = #{schedule_date}
+          AND delete_flg = 0
+        ORDER BY start_minute ASC, id ASC;
+    </select>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO daily_schedule_items
+        (user_id, schedule_date, start_minute, end_minute, timezone,
+         source_type, source_id, title_snapshot, status, color_key)
+        VALUES
+        (#{user_id}, #{schedule_date}, #{start_minute}, #{end_minute}, #{timezone},
+         #{source_type}, #{source_id}, #{title_snapshot}, #{status}, #{color_key});
+    </insert>
+
+    <!-- WHERE に user_id も含めることで、本人が作成した予定以外は更新されない（0件のまま） -->
+    <update id="update">
+        UPDATE daily_schedule_items
+        SET schedule_date = #{schedule_date},
+            start_minute = #{start_minute},
+            end_minute = #{end_minute},
+            timezone = #{timezone},
+            source_type = #{source_type},
+            source_id = #{source_id},
+            title_snapshot = #{title_snapshot},
+            color_key = #{color_key},
+            updated_at = now()
+        WHERE id = #{id} AND user_id = #{user_id};
+    </update>
+
+    <!-- 完了／未完了・スキップの切り替え専用。時刻・タイトル等には触れない -->
+    <update id="updateStatus">
+        UPDATE daily_schedule_items
+        SET status = #{status},
+            updated_at = now()
+        WHERE id = #{id} AND user_id = #{user_id};
+    </update>
+
+    <!-- WHERE に user_id も含めることで、本人が作成した予定以外は削除されない（0件のまま） -->
+    <update id="delete">
+        UPDATE daily_schedule_items
+        SET delete_flg = 1,
+            updated_at = now()
+        WHERE id = #{id} AND user_id = #{user_id};
+    </update>
+
+</mapper>
